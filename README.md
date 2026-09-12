@@ -13,6 +13,10 @@ Open [http://127.0.0.1:4521](http://127.0.0.1:4521) (`?as=you`). Port **4521**. 
 
 No Clerk / Supabase / Luma credentials required.
 
+### Remote joins (Cloudflare Tunnel)
+
+Localhost join links are not shareable off the host machine. After `npm run tunnel:setup`, copy `.env.local.example` to `.env.local` and set **`LOBBY_PUBLIC_URL`** and **`NEXT_PUBLIC_LOBBY_PUBLIC_URL`** to your tunnel hostname (see [`docs/persistent-tunnel.md`](docs/persistent-tunnel.md)). Restart `npm run dev`.
+
 ### Optional demo seed (local dev)
 
 To preload a sample **CoLoop Cowork** event (`COLOOP`) with demo squads:

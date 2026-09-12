@@ -36,6 +36,7 @@ import {
 } from "@/lib/domain";
 import { canShareEvent } from "@/lib/policy";
 import { CHECKLIST_COPY } from "@/lib/onboarding";
+import { resolveShareJoinUrl } from "@/lib/format";
 
 export function LobbyApp() {
   const router = useRouter();
@@ -53,6 +54,11 @@ export function LobbyApp() {
   const [now, setNow] = useState(() => Date.now());
 
   const slot = typeof window === "undefined" ? "you" : readSlot();
+
+  const shareJoin = useMemo(
+    () => (snapshot?.joinUrl ? resolveShareJoinUrl(snapshot.joinUrl) : null),
+    [snapshot?.joinUrl],
+  );
 
   const load = useCallback(async (id?: string) => {
     try {
@@ -352,16 +358,25 @@ export function LobbyApp() {
           <div>
             <p className="micro text-white/40">Grok Bot Lobby</p>
             <p className="text-[13px] text-white/85">{snapshot.event?.name ?? "No event"}</p>
-            {snapshot.event && snapshot.joinUrl ? (
+            {snapshot.event && shareJoin ? (
               <>
-                <EventCodeChip code={snapshot.event.eventCode} eventId={snapshot.event.id} joinUrl={snapshot.joinUrl} />
+                <EventCodeChip
+                  code={snapshot.event.eventCode}
+                  eventId={snapshot.event.id}
+                  joinUrl={snapshot.joinUrl!}
+                />
                 {canShareEvent(actor) ? (
                   <p className="micro mt-1 max-w-md text-white/35">
                     Click the chip to copy{" "}
-                    <span className="font-mono text-white/45">{snapshot.joinUrl}</span>. Tell your guest bot:{" "}
+                    <span className="font-mono text-white/45">{shareJoin.url}</span>. Tell your guest bot:{" "}
                     <span className="text-white/50">
-                      Join lobby {snapshot.event.eventCode} at {new URL(snapshot.joinUrl).origin}
+                      Join lobby {snapshot.event.eventCode} at {new URL(shareJoin.url).origin}
                     </span>
+                    {!shareJoin.isRemoteShareable ? (
+                      <span className="mt-1 block text-amber-400/90">
+                        Localhost only — set LOBBY_PUBLIC_URL in .env.local for remote joins.
+                      </span>
+                    ) : null}
                   </p>
                 ) : null}
               </>
