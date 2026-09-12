@@ -1,6 +1,20 @@
-/** Experimental probes for what a browser tab can reach toward Grok Bot. */
+/** Browser skill verification and join-block generation (File System Access API). */
 
 import { buildNoCloneCurlBlock } from "@/lib/join-blocks";
+
+export type SkillVerification = {
+  hasGrokbotScript: boolean;
+  skillMdPreview?: string;
+  folderName?: string;
+};
+
+export type JoinBlockPayload = {
+  code: string;
+  origin: string;
+  name: string;
+  task: string;
+  color: string;
+};
 
 export type LocalFolderProbe = {
   folderName: string;
@@ -105,17 +119,37 @@ export async function probeLocalSkillFolder(
   };
 }
 
+export function toSkillVerification(probe: LocalFolderProbe): SkillVerification {
+  return {
+    hasGrokbotScript: probe.hasGrokbotScript,
+    skillMdPreview: probe.skillMdPreview ?? undefined,
+    folderName: probe.folderName,
+  };
+}
+
+export function buildJoinBlockFromPayload(payload: JoinBlockPayload): string {
+  return buildNoCloneCurlBlock({
+    code: payload.code,
+    origin: payload.origin,
+    name: payload.name,
+    task: payload.task,
+    color: payload.color,
+  });
+}
+
+/** @deprecated Use buildJoinBlockFromPayload */
 export function buildCurlBlockForTab(args: {
   code: string;
   origin: string;
   name: string;
   task: string;
 }): string {
-  return buildNoCloneCurlBlock({
+  return buildJoinBlockFromPayload({
     code: args.code,
     origin: args.origin,
     name: args.name,
     task: args.task,
+    color: "cyan",
   });
 }
 

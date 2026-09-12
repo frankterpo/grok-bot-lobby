@@ -1,0 +1,146 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
+import { CopyBlock } from "@/components/lobby/copy-block";
+import { Button } from "@/components/ui/button";
+import {
+  buildJoinBlockFromPayload,
+  fsAccessSupported,
+  pickSkillFolder,
+  probeLocalSkillFolder,
+  toSkillVerification,
+  type SkillVerification,
+} from "@/lib/browser-grok-probe";
+
+type SkillVerifyJoinProps = {
+  code: string;
+  origin: string;
+  name: string;
+  task: string;
+  color?: string;
+};
+
+export function SkillVerifyJoin({ code, origin, name, task, color = "cyan" }: SkillVerifyJoinProps) {
+  const [verification, setVerification] = useState<SkillVerification | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  const curlBlock = useMemo(() => {
+    if (!verification?.hasGrokbotScript) {
+      return null;
+    }
+    const trimmedName = name.trim();
+    const trimmedTask = task.trim();
+    if (!trimmedName || !trimmedTask) {
+      return null;
+    }
+    return buildJoinBlockFromPayload({
+      code,
+      origin,
+      name: trimmedName,
+      task: trimmedTask,
+      color,
+    });
+  }, [verification, code, origin, name, task, color]);
+
+  async function verifySkillFolder(): Promise<void> {
+    setPending(true);
+    setVerifyError(null);
+    try {
+      const handle = await pickSkillFolder();
+      const probe = await probeLocalSkillFolder(handle);
+      const next = toSkillVerification(probe);
+      setVerification(next);
+      if (!next.hasGrokbotScript) {
+        setVerifyError(
+          probe.readError ??
+            "No scripts/grokbot.py found. Pick the root of your adamanz grok-bot skill install.",
+        );
+      }
+    } catch (error) {
+      setVerification(null);
+      setVerifyError(error instanceof Error ? error.message : "Could not read folder.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const skillOk = verification?.hasGrokbotScript === true;
+
+  return (
+    <div className="space-y-3 rounded-md border border-[#262626] bg-[#0d0d0d] p-3">
+      <div>
+        <p className="text-[12px] font-medium text-white/85">Verify grok-bot skill</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-white/45">
+          Chrome can read a folder you pick to confirm <code className="font-mono">scripts/grokbot.py</code> and
+          generate a join block. This does <span className="text-white/60">not</span> connect to Agent Computer or
+          run grokbot.py — paste the block below when ready.
+        </p>
+      </div>
+
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={pending || !fsAccessSupported()}
+        className="h-8 border-[#262626] bg-[#111] text-[11px]"
+        onClick={() => void verifySkillFolder()}
+      >
+        {fsAccessSupported() ? "Pick grok-bot skill folder…" : "Folder picker unavailable (use Chromium)"}
+      </Button>
+
+      {verifyError ? <p className="text-[11px] text-amber-400/90">{verifyError}</p> : null}
+
+      {verification ? (
+        <div className="space-y-2">
+          <p className="text-[11px] text-white/50">
+            {skillOk ? (
+              <>
+                <span className="text-emerald-400/90">Skill OK</span>
+                {verification.folderName ? ` — ${verification.folderName}` : null}
+              </>
+            ) : (
+              "Folder picked — grok-bot skill not detected."
+            )}
+          </p>
+          {verification.skillMdPreview ? (
+            <div className="space-y-1">
+              <p className="micro text-white/40">SKILL.md preview</p>
+              <pre className="max-h-28 overflow-auto rounded border border-[#262626] bg-[#111] p-2 text-[10px] leading-relaxed text-white/55 whitespace-pre-wrap">
+                {verification.skillMdPreview}
+                {verification.skillMdPreview.length >= 160 ? "…" : ""}
+              </pre>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {curlBlock ? (
+        <div className="space-y-1.5">
+          <p className="micro text-white/40">Join block — paste into Grok Bot Agent Computer</p>
+          <CopyBlock text={curlBlock} multiline />
+        </div>
+      ) : skillOk ? (
+        <p className="text-[11px] text-white/40">Enter your name and task above to generate the join block.</p>
+      ) : null}
+
+      <div className="border-t border-[#262626] pt-3">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled
+          className="h-8 w-full border-[#262626] bg-[#111] text-[11px] text-white/35"
+          title="Phase 2: local sidecar at http://127.0.0.1:9139/join"
+        >
+          Connect via local bridge (coming soon)
+        </Button>
+        <p className="mt-1.5 text-[10px] leading-relaxed text-white/30">
+          Phase 2 will POST to <code className="font-mono">http://127.0.0.1:9139/join</code> via a loopback sidecar —
+          no paste required. Until then, copy the block above.
+        </p>
+      </div>
+    </div>
+  );
+}
