@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
+import { BrowserGrokExperiment } from "@/components/lobby/browser-grok-experiment";
 import { CopyBlock } from "@/components/lobby/copy-block";
 import { PermissionsWalkthrough } from "@/components/lobby/permissions-walkthrough";
 import { Button } from "@/components/ui/button";
@@ -126,6 +127,10 @@ export function JoinFlow({ code, publicOrigin }: JoinFlowProps) {
           claimName,
           claimColor,
           claim,
+          onExperimentJoined: () => {
+            setHasGrokBot(true);
+            setPermissionsOpen(true);
+          },
         })}
       </div>
       <PermissionsWalkthrough
@@ -159,6 +164,7 @@ function joinBody(args: {
   setClaimColor: (color: string) => void;
   setShowAdvanced: (open: boolean) => void;
   claim: (input: { name: string; botColor: string; grok: boolean }) => Promise<void>;
+  onExperimentJoined: () => void;
 }): ReactNode {
   switch (args.path) {
     case "pick":
@@ -191,6 +197,11 @@ function joinBody(args: {
             </div>
           ) : null}
           {args.error ? <p className="text-[12px] text-red-400">{args.error}</p> : null}
+          <BrowserGrokExperiment
+            code={args.code}
+            shareLevel={args.shareLevel}
+            onJoined={args.onExperimentJoined}
+          />
           <button
             type="button"
             className="block text-[11px] text-white/35 underline-offset-2 hover:underline"
