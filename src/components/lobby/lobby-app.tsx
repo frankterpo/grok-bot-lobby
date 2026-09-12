@@ -93,7 +93,7 @@ export function LobbyApp() {
       return;
     }
     if (readSlot() === "you" && snapshot.session.role !== "host") {
-      router.replace("/host");
+      writeSlot("attendee");
       return;
     }
     if (snapshot.session.role === "host" && snapshot.events.length === 0) {

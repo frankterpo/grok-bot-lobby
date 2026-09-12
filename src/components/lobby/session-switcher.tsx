@@ -24,10 +24,6 @@ export function SessionSwitcher({ session }: SessionSwitcherProps) {
   function go(slot: IdentitySlot): void {
     writeSlot(slot);
     if (slot === "you") {
-      if (!isHost) {
-        router.push("/host");
-        return;
-      }
       router.push("/");
       return;
     }
@@ -41,6 +37,10 @@ export function SessionSwitcher({ session }: SessionSwitcherProps) {
 
   const label = isHost ? "Host" : session.userId ? "Attendee" : "Guest";
 
+  if (!isHost) {
+    return <span className="h-7 px-2 text-[11px] text-white/70">{label}</span>;
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -52,10 +52,8 @@ export function SessionSwitcher({ session }: SessionSwitcherProps) {
         <ChevronDown className="size-3" strokeWidth={1.5} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-44 bg-[#161616] text-[12px]">
-        <DropdownMenuItem onClick={() => go("you")}>
-          {isHost ? "Host panel" : "Sign in as host"}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => go("attendee")}>Attendee</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => go("you")}>Host panel</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => go("attendee")}>Attendee view</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
