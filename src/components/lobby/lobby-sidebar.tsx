@@ -4,8 +4,8 @@ import { Plus } from "lucide-react";
 
 import { EventCodeChip } from "@/components/lobby/event-code-chip";
 import { Button } from "@/components/ui/button";
-import type { Actor, Event } from "@/lib/domain";
-import { formatEventDate } from "@/lib/format";
+import type { Actor, Attendee, Event } from "@/lib/domain";
+import { formatEventDate, initialsForName } from "@/lib/format";
 import { canCreateEvent, canShareEvent } from "@/lib/policy";
 import { cn } from "@/lib/utils";
 
@@ -14,8 +14,10 @@ type LobbySidebarProps = {
   activeEventId: string | null;
   joinUrl: string | null;
   actor: Actor;
+  currentAttendee: Attendee | null;
   onSelect: (eventId: string) => void;
   onCreate: () => void;
+  onProfileClick?: () => void;
 };
 
 export function LobbySidebar({
@@ -23,8 +25,10 @@ export function LobbySidebar({
   activeEventId,
   joinUrl,
   actor,
+  currentAttendee,
   onSelect,
   onCreate,
+  onProfileClick,
 }: LobbySidebarProps) {
   return (
     <aside className="flex w-[200px] shrink-0 flex-col border-r border-[#262626] bg-[#111]">
@@ -43,7 +47,7 @@ export function LobbySidebar({
           </Button>
         ) : null}
       </div>
-      <nav className="flex flex-1 flex-col gap-1 px-2">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2">
         {events.map((event) => {
           const active = event.id === activeEventId;
           return (
@@ -69,6 +73,18 @@ export function LobbySidebar({
           );
         })}
       </nav>
+      {currentAttendee && actor.userId ? (
+        <button
+          type="button"
+          onClick={onProfileClick}
+          className="flex shrink-0 items-center gap-2 border-t border-[#262626] px-3 py-2.5 text-left transition-colors hover:bg-[#161616]"
+        >
+          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#262626] text-[10px] font-medium tracking-wide text-white/70">
+            {initialsForName(currentAttendee.name)}
+          </span>
+          <span className="min-w-0 truncate text-[12px] text-white/85">{currentAttendee.name}</span>
+        </button>
+      ) : null}
     </aside>
   );
 }

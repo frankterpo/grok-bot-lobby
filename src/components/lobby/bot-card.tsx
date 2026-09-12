@@ -26,7 +26,13 @@ export function BotCard({ attendee, token, presence, selected, now, onSelect }: 
           : "border-transparent hover:border-[#262626] hover:bg-[#161616]",
       )}
     >
-      <GrokBot attendee={attendee} size="lg" showYou={attendee.isCurrentUser} animated={animated} />
+      <GrokBot
+        attendee={attendee}
+        size="lg"
+        youLabel={attendee.isCurrentUser}
+        youRing={attendee.isCurrentUser}
+        animated={animated}
+      />
       <span className="max-w-[72px] truncate text-[11px] text-white/80">{attendee.name}</span>
     </button>
   );

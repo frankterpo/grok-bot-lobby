@@ -87,33 +87,48 @@ export function BotGrid({
       <section>
         <h2 className="micro mb-3 text-white/40">Group</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {squads.map((squad) => (
-            <button
-              key={squad.id}
-              type="button"
-              onClick={() => onSelectSquad(squad.id)}
-              className={cn(
-                "rounded-lg border bg-[#161616] p-2 text-left",
-                selectedSquadId === squad.id ? "border-[#f59e0b]" : "border-[#262626] hover:border-white/20",
-              )}
-            >
-              <div className="grid grid-cols-2 gap-1">
-                {squad.members.slice(0, 4).map((member) => (
-                  <div key={member.id} className="grid place-items-center py-1">
-                    <GrokBot
-                      attendee={member}
-                      size="sm"
-                      showYou={member.isCurrentUser}
-                      animated={isWorking(member.id, tokens, presence, now)}
-                    />
-                  </div>
-                ))}
-              </div>
-              <p className="micro mt-2 text-white/45">
-                {squad.name} · {squad.members.length}
-              </p>
-            </button>
-          ))}
+          {squads.map((squad) => {
+            const isYourSquad = squad.members.some((member) => member.isCurrentUser);
+            const squadSelected =
+              selectedSquadId === squad.id ||
+              (selectedAttendeeId !== null &&
+                squad.members.some((member) => member.id === selectedAttendeeId));
+
+            return (
+              <button
+                key={squad.id}
+                type="button"
+                onClick={() => onSelectSquad(squad.id)}
+                className={cn(
+                  "rounded-lg border bg-[#161616] p-2 text-left",
+                  squadSelected ? "border-[#f59e0b]" : "border-[#262626] hover:border-white/20",
+                )}
+              >
+                <div className="grid grid-cols-2 gap-1">
+                  {squad.members.slice(0, 4).map((member) => (
+                    <div key={member.id} className="grid place-items-center py-1">
+                      <GrokBot
+                        attendee={member}
+                        size="sm"
+                        youLabel={false}
+                        youRing={member.isCurrentUser}
+                        animated={isWorking(member.id, tokens, presence, now)}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="micro mt-2 text-white/45">
+                  {isYourSquad ? (
+                    <>
+                      <span className="text-[#f59e0b]/70">YOU</span>
+                      <span className="text-white/30"> · </span>
+                    </>
+                  ) : null}
+                  {squad.name} · {squad.members.length}
+                </p>
+              </button>
+            );
+          })}
         </div>
       </section>
     </div>
