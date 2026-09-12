@@ -71,7 +71,12 @@ export function GroupClusterAvatar({
             zIndex: index + 1,
           }}
         >
-          <GrokBotMark color={color} size={disc.size} animated={animated} />
+          <GrokBotMark
+            color={color}
+            size={disc.size}
+            animated={animated}
+            restSeed={`${color}-${index}`}
+          />
         </span>
       ))}
     </span>

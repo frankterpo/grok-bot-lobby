@@ -162,6 +162,39 @@
   }
 }
 
+/* Scaled resting motion for marks larger than cluster discs (~24px). */
+@keyframes grok-bot-rest-breathe-md {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-0.19%) rotate(-0.065deg);
+  }
+}
+
+@keyframes grok-bot-rest-look-md {
+  0%,
+  86%,
+  100% {
+    transform: translate(0, 0);
+  }
+  90%,
+  93% {
+    transform: translate(1.1%, -0.44%);
+  }
+}
+
+@keyframes grok-bot-rest-breathe-lg {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-0.15%) rotate(-0.05deg);
+  }
+}
+
 /* Working: gently active — not frantic. */
 @keyframes grok-bot-work-bob {
   0%,
@@ -187,31 +220,57 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) > svg {
+  /* Compact (≤35px): cluster disc / sidebar — gold-standard idle feel. */
+  .grok-bot-mark--rest-compact.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) > svg {
     animation: grok-bot-rest-breathe 10s ease-in-out infinite;
     animation-delay: var(--grok-bot-rest-delay, 0ms);
     transform-origin: center;
   }
 
-  .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eyes {
+  .grok-bot-mark--rest-compact.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eyes {
     animation: grok-bot-rest-look 24s ease-in-out infinite;
     animation-delay: var(--grok-bot-rest-delay, 0ms);
     transform-origin: center;
     transform-box: fill-box;
   }
 
-  .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--left {
+  .grok-bot-mark--rest-compact.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--left,
+  .grok-bot-mark--rest-medium.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--left,
+  .grok-bot-mark--rest-large.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--left {
     animation: grok-bot-rest-blink-left 14s linear infinite;
     animation-delay: var(--grok-bot-rest-delay, 0ms);
     transform-origin: center;
     transform-box: fill-box;
   }
 
-  .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--right {
+  .grok-bot-mark--rest-compact.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--right,
+  .grok-bot-mark--rest-medium.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--right,
+  .grok-bot-mark--rest-large.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--right {
     animation: grok-bot-rest-blink-right 17s linear infinite;
     animation-delay: calc(var(--grok-bot-rest-delay, 0ms) + 2.4s);
     transform-origin: center;
     transform-box: fill-box;
+  }
+
+  /* Medium (36–47px): same timing, amplitude scaled to ~24px reference. */
+  .grok-bot-mark--rest-medium.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) > svg {
+    animation: grok-bot-rest-breathe-md 10s ease-in-out infinite;
+    animation-delay: var(--grok-bot-rest-delay, 0ms);
+    transform-origin: center;
+  }
+
+  .grok-bot-mark--rest-medium.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eyes {
+    animation: grok-bot-rest-look-md 24s ease-in-out infinite;
+    animation-delay: var(--grok-bot-rest-delay, 0ms);
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+
+  /* Large (≥48px solo grid): faint breathe + blink only — no look-around loop. */
+  .grok-bot-mark--rest-large.grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) > svg {
+    animation: grok-bot-rest-breathe-lg 10s ease-in-out infinite;
+    animation-delay: var(--grok-bot-rest-delay, 0ms);
+    transform-origin: center;
   }
 
   .grok-bot-lazy.grok-bot-mark--working > svg {

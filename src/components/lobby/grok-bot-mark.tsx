@@ -25,11 +25,24 @@ function restAnimationDelayMs(seed: string): number {
   return hash % 12000;
 }
 
+/** Match cluster-disc perceived motion: compact ≈24–32px, scale down for larger marks. */
+function restSizeClass(size: number): string | false {
+  if (size >= 48) {
+    return "grok-bot-mark--rest-large";
+  }
+  if (size >= 36) {
+    return "grok-bot-mark--rest-medium";
+  }
+  return "grok-bot-mark--rest-compact";
+}
+
 type GrokBotMarkProps = {
   color: string;
   size?: number;
   fill?: boolean;
   animated?: boolean;
+  /** Stable id (e.g. attendee id) for desynced idle phase; defaults to color. */
+  restSeed?: string;
   className?: string;
 };
 
@@ -38,6 +51,7 @@ export function GrokBotMark({
   size = 44,
   fill = true,
   animated = false,
+  restSeed,
   className,
 }: GrokBotMarkProps) {
   return (
@@ -47,6 +61,7 @@ export function GrokBotMark({
         "grok-bot-lazy inline-block shrink-0 leading-none",
         fill && "grok-bot-mark--fill",
         animated && "grok-bot-mark--working",
+        restSizeClass(size),
         className,
       )}
       style={
@@ -55,7 +70,7 @@ export function GrokBotMark({
           height: size,
           "--fg": color,
           "--bg": EYE_FILL,
-          "--grok-bot-rest-delay": `${restAnimationDelayMs(color)}ms`,
+          "--grok-bot-rest-delay": `${restAnimationDelayMs(restSeed ?? color)}ms`,
         } as CSSProperties
       }
     >

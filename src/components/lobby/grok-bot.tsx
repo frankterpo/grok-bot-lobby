@@ -36,7 +36,12 @@ export function GrokBot({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo} alt={attendee.name} className="size-full object-cover" />
         ) : (
-          <GrokBotMark color={color} size={px} animated={animated} />
+          <GrokBotMark
+            color={color}
+            size={px}
+            animated={animated}
+            restSeed={attendee.id}
+          />
         )}
       </div>
       {photo ? <GrokBadge size={size === "sm" ? 10 : 14} /> : null}
