@@ -6,6 +6,7 @@ import { ChevronRight, PanelRightClose } from "lucide-react";
 import { TokenShareToggle } from "@/components/lobby/token-composer";
 import { TokenExchanges } from "@/components/lobby/token-exchanges";
 import { GrokBot } from "@/components/lobby/grok-bot";
+import { PresenceDot } from "@/components/lobby/presence-dot";
 import { Button } from "@/components/ui/button";
 import {
   assertNever,
@@ -220,12 +221,6 @@ function panelBody(args: Omit<ContextPanelProps, "onCollapse">): ReactNode {
     default:
       return assertNever(selection, "selection");
   }
-}
-
-function PresenceDot({ state }: { state: ReturnType<typeof presenceState> }) {
-  const color =
-    state === "active" ? "bg-emerald-400" : state === "stale" ? "bg-[#f59e0b]" : "bg-white/25";
-  return <span className={cn("size-1.5 shrink-0 rounded-full", color)} aria-hidden />;
 }
 
 function DetailHeader({
@@ -500,12 +495,7 @@ function SquadDetail({
                 className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left hover:bg-[#161616]"
                 onClick={() => onSelectAttendee(member.id)}
               >
-                <GrokBot
-                  attendee={member}
-                  size="sm"
-                  youLabel={false}
-                  youRing={member.isCurrentUser}
-                />
+                <GrokBot attendee={member} size="sm" youRing={member.isCurrentUser} />
                 <span className="flex-1 text-[12px] text-white/80">{member.name}</span>
                 <ChevronRight className="size-3.5 text-white/30" strokeWidth={1.5} />
               </button>

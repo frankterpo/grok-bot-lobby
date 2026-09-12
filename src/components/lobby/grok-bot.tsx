@@ -5,9 +5,6 @@ import { cn } from "@/lib/utils";
 type GrokBotProps = {
   attendee: Attendee;
   size?: "sm" | "md" | "lg";
-  /** @deprecated Prefer youLabel / youRing */
-  showYou?: boolean;
-  youLabel?: boolean;
   youRing?: boolean;
   animated?: boolean;
 };
@@ -15,30 +12,21 @@ type GrokBotProps = {
 export function GrokBot({
   attendee,
   size = "md",
-  showYou = false,
-  youLabel,
   youRing,
   animated = false,
 }: GrokBotProps) {
   const px = size === "lg" ? 56 : size === "sm" ? 28 : 44;
   const color = attendee.botColor ?? "#f97066";
-  const isYou = showYou || attendee.isCurrentUser;
-  const showLabel = youLabel ?? (showYou || attendee.isCurrentUser);
-  const showRing = youRing ?? (showYou || attendee.isCurrentUser);
+  const showRing = youRing ?? attendee.isCurrentUser;
   const photo = attendee.botAvatarUrl;
 
   return (
     <div className="relative inline-flex items-center justify-center">
-      {isYou && showLabel ? (
-        <span className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 text-[8px] font-medium tracking-[0.08em] text-[#f59e0b]/65 uppercase">
-          you
-        </span>
-      ) : null}
       <div
         className={cn(
           "relative",
           photo ? "overflow-hidden rounded-full" : "",
-          isYou && showRing
+          showRing
             ? "rounded-full ring-1 ring-[#f59e0b]/55 ring-offset-1 ring-offset-[#0d0d0d]"
             : "",
         )}

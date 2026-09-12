@@ -1,4 +1,5 @@
 import { GrokBot } from "@/components/lobby/grok-bot";
+import { PresenceDot } from "@/components/lobby/presence-dot";
 import { presenceState, type Attendee, type LobbyToken, type PresenceRecord } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 
@@ -29,11 +30,17 @@ export function BotCard({ attendee, token, presence, selected, now, onSelect }: 
       <GrokBot
         attendee={attendee}
         size="lg"
-        youLabel={attendee.isCurrentUser}
         youRing={attendee.isCurrentUser}
         animated={animated}
       />
-      <span className="max-w-[72px] truncate text-[11px] text-white/80">{attendee.name}</span>
+      {attendee.isCurrentUser ? (
+        <div className="flex max-w-[72px] items-center justify-center gap-1">
+          <PresenceDot state={state} />
+          <span className="truncate text-[11px] text-white/80">{attendee.name}</span>
+        </div>
+      ) : (
+        <span className="max-w-[72px] truncate text-[11px] text-white/80">{attendee.name}</span>
+      )}
     </button>
   );
 }
