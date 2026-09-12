@@ -1,3 +1,4 @@
+import { GrokBotMark } from "@/components/lobby/grok-bot-mark";
 import { type Attendee } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 
@@ -5,11 +6,10 @@ type GrokBotProps = {
   attendee: Attendee;
   size?: "sm" | "md" | "lg";
   showYou?: boolean;
+  animated?: boolean;
 };
 
-const EYE_FILL = "#141414";
-
-export function GrokBot({ attendee, size = "md", showYou = false }: GrokBotProps) {
+export function GrokBot({ attendee, size = "md", showYou = false, animated = false }: GrokBotProps) {
   const px = size === "lg" ? 56 : size === "sm" ? 28 : 44;
   const color = attendee.botColor ?? "#f97066";
   const isYou = showYou || attendee.isCurrentUser;
@@ -24,8 +24,9 @@ export function GrokBot({ attendee, size = "md", showYou = false }: GrokBotProps
       ) : null}
       <div
         className={cn(
-          "relative overflow-hidden rounded-full",
-          isYou ? "ring-[1.5px] ring-[#f59e0b] ring-offset-2 ring-offset-[#0d0d0d]" : "",
+          "relative",
+          photo ? "overflow-hidden rounded-full" : "",
+          isYou ? "rounded-full ring-[1.5px] ring-[#f59e0b] ring-offset-2 ring-offset-[#0d0d0d]" : "",
         )}
         style={{ width: px, height: px }}
       >
@@ -33,7 +34,7 @@ export function GrokBot({ attendee, size = "md", showYou = false }: GrokBotProps
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo} alt={attendee.name} className="size-full object-cover" />
         ) : (
-          <BotFace color={color} />
+          <GrokBotMark color={color} size={px} animated={animated} />
         )}
       </div>
       {photo ? <GrokBadge size={size === "sm" ? 10 : 14} /> : null}
@@ -57,15 +58,5 @@ export function GrokBadge({ size = 14 }: { size?: number }) {
         />
       </svg>
     </span>
-  );
-}
-
-function BotFace({ color }: { color: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className="size-full" aria-hidden>
-      <circle cx="32" cy="32" r="32" fill={color} />
-      <rect x="34" y="21" width="6" height="7" rx="1" fill={EYE_FILL} transform="rotate(12 37 24.5)" />
-      <rect x="43" y="19" width="6" height="7" rx="1" fill={EYE_FILL} transform="rotate(12 46 22.5)" />
-    </svg>
   );
 }

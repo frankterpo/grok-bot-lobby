@@ -1,14 +1,20 @@
 import { GrokBot } from "@/components/lobby/grok-bot";
-import { type Attendee } from "@/lib/domain";
+import { presenceState, type Attendee, type LobbyToken, type PresenceRecord } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 
 type BotCardProps = {
   attendee: Attendee;
+  token: LobbyToken | undefined;
+  presence: PresenceRecord | undefined;
   selected: boolean;
+  now: number;
   onSelect: () => void;
 };
 
-export function BotCard({ attendee, selected, onSelect }: BotCardProps) {
+export function BotCard({ attendee, token, presence, selected, now, onSelect }: BotCardProps) {
+  const state = presence ? presenceState(presence, now) : "offline";
+  const animated = state === "active" && token?.status === "working";
+
   return (
     <button
       type="button"
@@ -20,7 +26,7 @@ export function BotCard({ attendee, selected, onSelect }: BotCardProps) {
           : "border-transparent hover:border-[#262626] hover:bg-[#161616]",
       )}
     >
-      <GrokBot attendee={attendee} size="lg" showYou={attendee.isCurrentUser} />
+      <GrokBot attendee={attendee} size="lg" showYou={attendee.isCurrentUser} animated={animated} />
       <span className="max-w-[72px] truncate text-[11px] text-white/80">{attendee.name}</span>
     </button>
   );

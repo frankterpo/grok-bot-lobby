@@ -331,6 +331,9 @@ export function LobbyApp() {
           <BotGrid
             solo={solo}
             squads={snapshot.event.squads}
+            tokens={snapshot.tokens}
+            presence={snapshot.presence}
+            now={now}
             selectedAttendeeId={selectedAttendeeId}
             selectedSquadId={selectedSquadId}
             panelCollapsed={panelCollapsed}

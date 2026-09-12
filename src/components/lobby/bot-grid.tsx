@@ -5,15 +5,30 @@ import { ArrowRight } from "lucide-react";
 
 import { GrokBot } from "@/components/lobby/grok-bot";
 import { BotCard } from "@/components/lobby/bot-card";
-import { type Attendee, type Squad } from "@/lib/domain";
+import { presenceState, type Attendee, type LobbyToken, type PresenceRecord, type Squad } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+
+function isWorking(
+  attendeeId: string,
+  tokens: LobbyToken[],
+  presence: PresenceRecord[],
+  now: number,
+): boolean {
+  const record = presence.find((item) => item.userId === attendeeId);
+  const state = record ? presenceState(record, now) : "offline";
+  const token = tokens.find((item) => item.botId === attendeeId);
+  return state === "active" && token?.status === "working";
+}
 
 type BotGridProps = {
   solo: Attendee[];
   squads: Squad[];
+  tokens: LobbyToken[];
+  presence: PresenceRecord[];
   selectedAttendeeId: string | null;
   selectedSquadId: string | null;
   panelCollapsed: boolean;
+  now: number;
   onSelectAttendee: (id: string) => void;
   onSelectSquad: (id: string) => void;
 };
@@ -21,9 +36,12 @@ type BotGridProps = {
 export function BotGrid({
   solo,
   squads,
+  tokens,
+  presence,
   selectedAttendeeId,
   selectedSquadId,
   panelCollapsed,
+  now,
   onSelectAttendee,
   onSelectSquad,
 }: BotGridProps) {
@@ -55,7 +73,10 @@ export function BotGrid({
               <BotCard
                 key={attendee.id}
                 attendee={attendee}
+                token={tokens.find((item) => item.botId === attendee.id)}
+                presence={presence.find((record) => record.userId === attendee.id)}
                 selected={selectedAttendeeId === attendee.id}
+                now={now}
                 onSelect={() => onSelectAttendee(attendee.id)}
               />
             ))}
@@ -79,7 +100,12 @@ export function BotGrid({
               <div className="grid grid-cols-2 gap-1">
                 {squad.members.slice(0, 4).map((member) => (
                   <div key={member.id} className="grid place-items-center py-1">
-                    <GrokBot attendee={member} size="sm" showYou={member.isCurrentUser} />
+                    <GrokBot
+                      attendee={member}
+                      size="sm"
+                      showYou={member.isCurrentUser}
+                      animated={isWorking(member.id, tokens, presence, now)}
+                    />
                   </div>
                 ))}
               </div>

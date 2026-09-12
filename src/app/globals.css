@@ -105,3 +105,48 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+
+/* Grok Bot mark — geometry from Grok Bot.app; working motion is a minimal CSS stand-in
+   (production uses rAF pose morphing; grok-bot-lazy class not present in desktop bundle). */
+.grok-bot-mark--fill .grok-bot-mark__head {
+  fill: var(--fg);
+}
+
+.grok-bot-mark--fill .grok-bot-mark__eye {
+  fill: var(--bg);
+}
+
+@keyframes grok-bot-lazy-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3%) rotate(-1.5deg);
+  }
+}
+
+@keyframes grok-bot-lazy-eye {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  35% {
+    transform: translate(0.5px, -0.5px);
+  }
+  70% {
+    transform: translate(-0.5px, 0.5px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .grok-bot-lazy.grok-bot-mark--working {
+    animation: grok-bot-lazy-bob 1.4s ease-in-out infinite;
+  }
+
+  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__eyes {
+    animation: grok-bot-lazy-eye 2.2s ease-in-out infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+}

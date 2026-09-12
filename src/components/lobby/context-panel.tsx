@@ -224,28 +224,27 @@ function PresenceDot({ state }: { state: ReturnType<typeof presenceState> }) {
 function DetailHeader({
   attendee,
   isYou,
+  token,
   presence,
   now,
 }: {
   attendee: Attendee;
   isYou?: boolean;
+  token?: LobbyToken | undefined;
   presence: PresenceRecord | undefined;
   now: number;
 }) {
   const state = presence ? presenceState(presence, now) : "offline";
+  const animated = state === "active" && token?.status === "working";
+
   return (
-    <div className="flex flex-col items-center gap-3 px-3 py-4">
-      {isYou ? (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#262626] bg-[#161616] px-2.5 py-0.5">
-          <span className="size-1.5 rounded-full bg-[#f59e0b]" aria-hidden />
-          <span className="micro text-[#f59e0b]">You</span>
-        </span>
-      ) : null}
-      <GrokBot attendee={attendee} size="lg" showYou={isYou} />
-      <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-2.5 border-b border-[#262626] px-3 py-3">
+      <GrokBot attendee={attendee} size="sm" animated={animated} />
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
         <PresenceDot state={state} />
-        <p className="max-w-[220px] truncate text-[14px] text-white/90">{attendee.name}</p>
+        <p className="truncate text-[13px] text-white/90">{attendee.name}</p>
       </div>
+      {isYou ? <span className="micro shrink-0 text-[#f59e0b]">You</span> : null}
     </div>
   );
 }
@@ -314,7 +313,7 @@ function YouDetail({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <DetailHeader attendee={attendee} isYou presence={presence} now={now} />
+      <DetailHeader attendee={attendee} isYou token={token} presence={presence} now={now} />
       <StatusStrip token={token} received={received} presence={presence} now={now} />
       <ProfileBlock profile={profile} handle={attendee.lumaHandle} />
       <PastEvents profile={profile} />
@@ -390,7 +389,7 @@ function AttendeeDetail({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <DetailHeader attendee={attendee} presence={presence} now={now} />
+      <DetailHeader attendee={attendee} token={token} presence={presence} now={now} />
       <StatusStrip token={token} received={received} presence={presence} now={now} />
       <ProfileBlock profile={profile} handle={attendee.lumaHandle} />
       <PastEvents profile={profile} />
