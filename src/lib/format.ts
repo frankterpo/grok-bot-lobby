@@ -168,6 +168,25 @@ export function resolveShareJoinUrl(joinUrlInput: string): ResolvedShareJoinUrl 
   return { url: joinUrlInput, isRemoteShareable: false };
 }
 
+export type PublicUrlStatus = {
+  shareable: boolean;
+  publicUrl: string | null;
+  joinPath: string;
+};
+
+/** Server-side public URL readiness for share wizard and polling. */
+export function getPublicUrlStatus(options?: { request?: Request; code?: string }): PublicUrlStatus {
+  const { baseUrl, isRemoteShareable, source } = getLobbyBaseUrl(options);
+  const shareable = source === "env" && isRemoteShareable;
+  const code = options?.code?.trim().toUpperCase();
+  const path = code ? joinPath(code) : "/join";
+  return {
+    shareable,
+    publicUrl: shareable ? baseUrl : null,
+    joinPath: path,
+  };
+}
+
 /** @deprecated Use readConfiguredPublicUrl via getLobbyBaseUrl */
 export function configuredPublicOrigin(): string | null {
   return readConfiguredPublicUrl();

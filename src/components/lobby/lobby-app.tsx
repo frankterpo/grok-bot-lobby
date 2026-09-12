@@ -11,7 +11,6 @@ import { LobbySidebar } from "@/components/lobby/lobby-sidebar";
 import { OnboardingScreen } from "@/components/lobby/onboarding-screen";
 import { PermissionsWalkthrough } from "@/components/lobby/permissions-walkthrough";
 import { SessionSwitcher } from "@/components/lobby/session-switcher";
-import { ShareLink } from "@/components/lobby/share-link";
 import { TokenExchanges } from "@/components/lobby/token-exchanges";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,8 +47,6 @@ export function LobbyApp() {
   const [selection, setSelection] = useState<Selection>({ kind: "none" });
   const [onboarded, setOnboarded] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [createdJoin, setCreatedJoin] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
@@ -266,9 +263,7 @@ export function LobbyApp() {
         <CreateEventDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
-          onCreated={(event, joinUrl) => {
-            setCreatedJoin(joinUrl);
-            setShareOpen(true);
+          onCreated={(event) => {
             void load(event.id);
           }}
         />
@@ -373,8 +368,8 @@ export function LobbyApp() {
                       Join lobby {snapshot.event.eventCode} at {new URL(shareJoin.url).origin}
                     </span>
                     {!shareJoin.isRemoteShareable ? (
-                      <span className="mt-1 block text-amber-400/90">
-                        Localhost only — set LOBBY_PUBLIC_URL in .env.local for remote joins.
+                      <span className="mt-1 block text-white/35">
+                        Local link only — complete public URL setup in the share wizard for remote joins.
                       </span>
                     ) : null}
                   </p>
@@ -501,21 +496,10 @@ export function LobbyApp() {
       <CreateEventDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onCreated={(event, joinUrl) => {
-          setCreatedJoin(joinUrl);
-          setShareOpen(true);
+        onCreated={(event) => {
           void load(event.id);
         }}
       />
-      {shareOpen && createdJoin ? (
-        <div className="absolute top-14 right-[292px] z-30 w-80 rounded-lg border border-[#262626] bg-[#111] p-3 shadow-xl">
-          <p className="micro text-white/45">Shareable join link</p>
-          <p className="mt-1 text-[12px] text-white/50">Send this. Second Grok Bot walks in live.</p>
-          <div className="mt-2">
-            <ShareLink url={createdJoin} eventId={eventId} />
-          </div>
-        </div>
-      ) : null}
       <PermissionsWalkthrough
         open={editOpen}
         onOpenChange={setEditOpen}

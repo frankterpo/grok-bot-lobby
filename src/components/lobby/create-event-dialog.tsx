@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
-import { ShareLink } from "@/components/lobby/share-link";
+import { EventShareWizard } from "@/components/lobby/event-share-wizard";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -65,13 +65,12 @@ export function CreateEventDialog({ open, onOpenChange, onCreated }: CreateEvent
         {created ? (
           <>
             <DialogHeader>
-              <DialogTitle className="text-[14px]">Lobby is live. Send this link.</DialogTitle>
+              <DialogTitle className="text-[14px]">Share your lobby</DialogTitle>
               <DialogDescription className="text-[12px] text-white/50">
-                Tell Grok Bots: Join lobby {created.event.eventCode} at this URL. Not a web signup.
+                Follow the steps below to get a link your guest can use from anywhere.
               </DialogDescription>
             </DialogHeader>
-            <p className="font-mono text-[18px] tracking-[0.2em] text-white/90">{created.event.eventCode}</p>
-            <ShareLink url={created.joinUrl} eventId={created.event.id} />
+            <EventShareWizard event={created.event} joinUrl={created.joinUrl} />
           </>
         ) : (
           <form onSubmit={(event) => void submit(event)} className="space-y-3">
