@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 
-import { shareLevelCopy, SHARE_LEVELS, type ShareLevel } from "@/lib/domain";
+import {
+  shareLevelCopy,
+  shareLevelDescription,
+  SHARE_LEVELS,
+  type ShareLevel,
+} from "@/lib/domain";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
@@ -65,11 +69,12 @@ export function TokenShareToggle({
           <p className="text-[12px] text-white/80">Share task token overview with lobby</p>
           <p className="mt-0.5 text-[11px] text-white/40">
             {enabled
-              ? lastSyncedLabel
-                ? `Showing last bot sync: ${lastSyncedLabel}`
-                : "Your bot-synced task appears on your card when available."
-              : "Others won't see the task strip on your card."}
+              ? shareLevelDescription(level)
+              : "Others won't see your task token on your card or detail panel."}
           </p>
+          {enabled && lastSyncedLabel ? (
+            <p className="text-[11px] text-white/30">Last sync: {lastSyncedLabel}</p>
+          ) : null}
         </div>
         <button
           type="button"
@@ -95,13 +100,18 @@ export function TokenShareToggle({
         <label className="block">
           <span className="micro text-white/40">Share level</span>
           <Select value={level} onValueChange={(value) => void changeLevel(value as ShareLevel)}>
-            <SelectTrigger size="sm" className="mt-1 h-7 border-[#262626] bg-[#111] text-[11px]">
-              <SelectValue>{shareLevelCopy(level)}</SelectValue>
+            <SelectTrigger size="sm" className="mt-1 h-7 w-full border-[#262626] bg-[#111] text-[11px]">
+              <span className="flex-1 truncate text-left">{shareLevelCopy(level)}</span>
             </SelectTrigger>
             <SelectContent className="bg-[#161616]">
               {SHARE_LEVELS.map((item) => (
                 <SelectItem key={item} value={item}>
-                  {shareLevelCopy(item)}
+                  <span className="block">
+                    <span className="text-[12px] text-white/90">{shareLevelCopy(item)}</span>
+                    <span className="mt-0.5 block text-[10px] text-white/40">
+                      {shareLevelDescription(item)}
+                    </span>
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

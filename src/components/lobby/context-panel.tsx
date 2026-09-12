@@ -13,6 +13,7 @@ import {
   presenceCopy,
   presenceState,
   receivedTokensFor,
+  tokenStatusCopy,
   type Actor,
   type Attendee,
   type Event,
@@ -263,9 +264,12 @@ function StatusStrip({
   now: number;
 }) {
   const state = presence ? presenceState(presence, now) : "offline";
+  const showStatus = Boolean(token && token.shareLevel !== "label");
   const lines = [
     presenceCopy(state),
     token ? token.taskLabel : null,
+    showStatus && token ? tokenStatusCopy(token.status) : null,
+    token?.focus ? token.focus : null,
     received[0] ? `in: ${received[0].taskLabel}` : null,
   ].filter(Boolean);
 

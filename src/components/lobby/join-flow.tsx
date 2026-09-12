@@ -11,7 +11,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { lobbyFetch, rememberEventCode, writeSlot } from "@/lib/client";
 import {
@@ -19,6 +18,7 @@ import {
   CLAIM_COLORS,
   SHARE_LEVELS,
   shareLevelCopy,
+  shareLevelDescription,
   type ShareLevel,
 } from "@/lib/domain";
 import { assertNever } from "@/lib/domain";
@@ -253,16 +253,22 @@ function ShareSelect({
       <span className="micro text-white/40">Share level (optional)</span>
       <Select value={value} onValueChange={(next) => onChange(next as ShareLevel)}>
         <SelectTrigger size="sm" className="mt-1 h-8 w-full border-[#262626] bg-[#0d0d0d] text-[12px]">
-          <SelectValue />
+          <span className="flex-1 truncate text-left">{shareLevelCopy(value)}</span>
         </SelectTrigger>
         <SelectContent className="bg-[#161616]">
           {SHARE_LEVELS.map((item) => (
             <SelectItem key={item} value={item}>
-              {shareLevelCopy(item)}
+              <span className="block">
+                <span className="text-[12px] text-white/90">{shareLevelCopy(item)}</span>
+                <span className="mt-0.5 block text-[10px] text-white/40">
+                  {shareLevelDescription(item)}
+                </span>
+              </span>
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
+      <p className="mt-1 text-[11px] text-white/35">{shareLevelDescription(value)}</p>
     </label>
   );
 }

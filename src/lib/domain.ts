@@ -4,6 +4,8 @@ export type RsvpStatus = (typeof RSVP_STATUSES)[number];
 export const TOKEN_STATUSES = ["working", "done", "waiting", "idle"] as const;
 export type TokenStatus = (typeof TOKEN_STATUSES)[number];
 
+// Lobby task-token privacy (not grok-bot-skill transcript sharing).
+// grok-bot-skill `transcript` returns full entry text with no privacy tiers — see internal/share-levels-audit.md.
 export const SHARE_LEVELS = ["label", "label+status", "full"] as const;
 export type ShareLevel = (typeof SHARE_LEVELS)[number];
 
@@ -303,9 +305,23 @@ export function shareLevelCopy(level: ShareLevel): string {
     case "label":
       return "Task label only";
     case "label+status":
-      return "Label + status";
+      return "Task + status";
     case "full":
-      return "Full token";
+      return "Task + status + focus";
+    default:
+      return assertNever(level, "share level");
+  }
+}
+
+/** What others see at each share level (lobby tokens only — never transcript/workspace). */
+export function shareLevelDescription(level: ShareLevel): string {
+  switch (level) {
+    case "label":
+      return "Others see only your task name. No status, focus, or transcript.";
+    case "label+status":
+      return "Others see your task name and status (working, done, waiting, or idle).";
+    case "full":
+      return "Others also see your focus line from sync. Still no transcript or Agent Computer.";
     default:
       return assertNever(level, "share level");
   }

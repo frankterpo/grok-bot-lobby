@@ -59,6 +59,7 @@ async function main(): Promise<void> {
   const color = arg("color") ?? "cyan";
   const task = arg("task");
   const status = arg("status") ?? "working";
+  const shareLevel = arg("shareLevel") ?? "label+status";
   const once = hasFlag("once");
   if (!name) {
     fail("Need --name. Example: join-lobby --code COLOOP --url http://127.0.0.1:4521 --name Alice --color cyan");
@@ -82,7 +83,7 @@ async function main(): Promise<void> {
     await postJson(
       url,
       "/api/lobby/sync",
-      { eventId, botId: userId, taskLabel: task, status },
+      { eventId, botId: userId, taskLabel: task, status, shareLevel },
       userId,
     );
   }
@@ -98,6 +99,7 @@ async function main(): Promise<void> {
     url,
     taskLabel: task ?? null,
     status: task ? status : null,
+    shareLevel: task ? shareLevel : null,
     heartbeatMs: HEARTBEAT_MS,
     watching: !once,
   };
