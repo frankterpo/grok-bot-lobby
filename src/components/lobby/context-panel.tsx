@@ -215,6 +215,72 @@ function panelBody(args: Omit<ContextPanelProps, "onCollapse">): ReactNode {
   }
 }
 
+function PresenceDot({ state }: { state: ReturnType<typeof presenceState> }) {
+  const color =
+    state === "active" ? "bg-emerald-400" : state === "stale" ? "bg-[#f59e0b]" : "bg-white/25";
+  return <span className={cn("size-1.5 shrink-0 rounded-full", color)} aria-hidden />;
+}
+
+function DetailHeader({
+  attendee,
+  isYou,
+  presence,
+  now,
+}: {
+  attendee: Attendee;
+  isYou?: boolean;
+  presence: PresenceRecord | undefined;
+  now: number;
+}) {
+  const state = presence ? presenceState(presence, now) : "offline";
+  return (
+    <div className="flex flex-col items-center gap-3 px-3 py-4">
+      {isYou ? (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#262626] bg-[#161616] px-2.5 py-0.5">
+          <span className="size-1.5 rounded-full bg-[#f59e0b]" aria-hidden />
+          <span className="micro text-[#f59e0b]">You</span>
+        </span>
+      ) : null}
+      <GrokBot attendee={attendee} size="lg" showYou={isYou} />
+      <div className="flex items-center gap-1.5">
+        <PresenceDot state={state} />
+        <p className="max-w-[220px] truncate text-[14px] text-white/90">{attendee.name}</p>
+      </div>
+    </div>
+  );
+}
+
+function StatusStrip({
+  token,
+  received,
+  presence,
+  now,
+}: {
+  token: LobbyToken | undefined;
+  received: LobbyToken[];
+  presence: PresenceRecord | undefined;
+  now: number;
+}) {
+  const state = presence ? presenceState(presence, now) : "offline";
+  const lines = [
+    presenceCopy(state),
+    token ? token.taskLabel : null,
+    received[0] ? `in: ${received[0].taskLabel}` : null,
+  ].filter(Boolean);
+
+  if (lines.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="border-b border-[#262626] px-3 py-2">
+      {lines.map((line) => (
+        <p key={line} className="text-[11px] text-white/45">{line}</p>
+      ))}
+    </div>
+  );
+}
+
 function YouDetail({
   attendee,
   profile,
@@ -246,17 +312,10 @@ function YouDetail({
   onApprove: (requestId: string) => Promise<void>;
   onReject: (requestId: string) => Promise<void>;
 }) {
-  const state = presence ? presenceState(presence, now) : "offline";
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 px-3 py-3">
-        <GrokBot attendee={attendee} size="md" showYou />
-        <div>
-          <p className="text-[13px] text-white/90">{attendee.name}</p>
-          <p className="micro text-white/35">{presenceCopy(state)}</p>
-          {received[0] ? <p className="micro mt-1 text-[#f59e0b]/80">in: {received[0].taskLabel}</p> : null}
-        </div>
-      </div>
+      <DetailHeader attendee={attendee} isYou presence={presence} now={now} />
+      <StatusStrip token={token} received={received} presence={presence} now={now} />
       <ProfileBlock profile={profile} handle={attendee.lumaHandle} />
       <PastEvents profile={profile} />
       <TokenExchanges
@@ -329,18 +388,10 @@ function AttendeeDetail({
   onApprove: (requestId: string) => Promise<void>;
   onReject: (requestId: string) => Promise<void>;
 }) {
-  const state = presence ? presenceState(presence, now) : "offline";
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 px-3 py-3">
-        <GrokBot attendee={attendee} size="md" />
-        <div>
-          <p className="text-[13px] text-white/90">{attendee.name}</p>
-          <p className="micro text-white/35">{presenceCopy(state)}</p>
-          {token ? <p className="mt-1 text-[11px] text-white/60">{token.taskLabel}</p> : null}
-          {received[0] ? <p className="micro mt-1 text-[#f59e0b]/80">in: {received[0].taskLabel}</p> : null}
-        </div>
-      </div>
+      <DetailHeader attendee={attendee} presence={presence} now={now} />
+      <StatusStrip token={token} received={received} presence={presence} now={now} />
       <ProfileBlock profile={profile} handle={attendee.lumaHandle} />
       <PastEvents profile={profile} />
       <TokenExchanges

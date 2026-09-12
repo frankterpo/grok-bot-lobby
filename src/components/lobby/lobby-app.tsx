@@ -331,20 +331,21 @@ export function LobbyApp() {
           <BotGrid
             solo={solo}
             squads={snapshot.event.squads}
-            tokens={snapshot.tokens}
-            presence={snapshot.presence}
-            exchanges={snapshot.exchanges}
             selectedAttendeeId={selectedAttendeeId}
             selectedSquadId={selectedSquadId}
             panelCollapsed={panelCollapsed}
-            now={now}
-            onSelectAttendee={(id) =>
+            onSelectAttendee={(id) => {
+              const attendee = snapshot.event?.attendees.find((item) => item.id === id);
+              if (attendee?.squadId) {
+                setSelection({ kind: "squad", squadId: attendee.squadId });
+                return;
+              }
               setSelection(
                 id === snapshot.session.userId
                   ? { kind: "you", attendeeId: id }
                   : { kind: "attendee", attendeeId: id },
-              )
-            }
+              );
+            }}
             onSelectSquad={(id) => setSelection({ kind: "squad", squadId: id })}
           />
         ) : (
