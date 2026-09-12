@@ -17,6 +17,7 @@ export type StoredEvent = Event & { hostUserId: string };
 export type UserPrefs = {
   permissionsAccepted: boolean;
   shareLevel: LobbyToken["shareLevel"];
+  shareTokens: boolean;
   hasGrokBot: boolean;
 };
 
@@ -280,6 +281,7 @@ export function buildSeed(): SeedBundle {
         {
           permissionsAccepted: true,
           shareLevel: "full",
+          shareTokens: true,
           hasGrokBot: true,
         },
       ],

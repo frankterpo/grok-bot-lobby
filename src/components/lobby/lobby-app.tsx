@@ -30,7 +30,6 @@ import {
   type LobbySnapshot,
   type Selection,
   type ShareLevel,
-  type TokenStatus,
 } from "@/lib/domain";
 import { CHECKLIST_COPY } from "@/lib/onboarding";
 
@@ -182,21 +181,23 @@ export function LobbyApp() {
     return [...ungrouped].sort((a, b) => rank(a.id) - rank(b.id));
   }, [snapshot]);
 
-  async function syncToken(input: { taskLabel: string; status: TokenStatus; shareLevel: ShareLevel }): Promise<void> {
-    if (!snapshot?.event || !snapshot.session.userId) {
+  async function updateSharePrefs(input: {
+    shareTokens: boolean;
+    shareLevel?: ShareLevel;
+  }): Promise<void> {
+    if (!snapshot?.event) {
       return;
     }
-    const response = await lobbyFetch("/api/lobby/sync", {
+    const response = await lobbyFetch("/api/bots/prefs", {
       method: "POST",
       body: JSON.stringify({
         eventId: snapshot.event.id,
-        botId: snapshot.session.userId,
         ...input,
       }),
     });
     if (!response.ok) {
       const body = (await response.json()) as { error?: string };
-      setError(body.error ?? "Sync failed.");
+      setError(body.error ?? "Could not update sharing prefs.");
     }
   }
 
@@ -409,7 +410,9 @@ export function LobbyApp() {
           }}
           onApprove={approveExchange}
           onReject={rejectExchange}
-          onSync={syncToken}
+          shareTokens={snapshot.session.shareTokens}
+          shareLevel={snapshot.session.shareLevel}
+          onSharePrefs={updateSharePrefs}
           onEdit={() => setEditOpen(true)}
         />
       )}

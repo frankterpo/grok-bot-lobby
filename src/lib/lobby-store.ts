@@ -155,9 +155,9 @@ export class LobbyMemory {
         : this.getStored(SEED_EVENT_ID);
     const event = stored ? this.presentEvent(stored, args.actor.userId) : null;
     const eventId = stored?.id ?? null;
-    const tokens = eventIdTokens(this.tokens, eventId).map((token) =>
-      this.presentToken(token, args.actor),
-    );
+    const tokens = eventIdTokens(this.tokens, eventId)
+      .filter((token) => this.shouldPresentToken(token, args.actor))
+      .map((token) => this.presentToken(token, args.actor));
     const presence = eventIdPresence(this.presence, eventId).map((record) => ({
       ...record,
       state: presenceState(record),
@@ -292,6 +292,7 @@ export class LobbyMemory {
     this.prefs.set(userId, {
       permissionsAccepted: input.acceptPermissions,
       shareLevel: input.shareLevel,
+      shareTokens: true,
       hasGrokBot: input.hasGrokBot,
     });
     this.ensurePresence(stored.id, userId, true);
@@ -518,7 +519,10 @@ export class LobbyMemory {
     return {
       attendee: this.presentAttendee(attendee, live.userId),
       profile: this.profiles.get(botId) ?? null,
-      token: rawToken ? this.presentToken(rawToken, live) : null,
+      token:
+        rawToken && this.shouldPresentToken(rawToken, live)
+          ? this.presentToken(rawToken, live)
+          : null,
       presence: { ...record, state: presenceState(record) },
       exchanges,
       receivedTokens: receivedTokensFor(exchanges, botId, attendee.squadId),
@@ -527,7 +531,12 @@ export class LobbyMemory {
 
   updatePrefs(
     actor: Actor,
-    input: { shareLevel?: ShareLevel; permissionsAccepted?: boolean; hasGrokBot?: boolean },
+    input: {
+      shareLevel?: ShareLevel;
+      shareTokens?: boolean;
+      permissionsAccepted?: boolean;
+      hasGrokBot?: boolean;
+    },
     eventId: string,
   ): LobbySnapshot {
     if (!actor.userId) {
@@ -536,11 +545,13 @@ export class LobbyMemory {
     const current = this.prefs.get(actor.userId) ?? {
       permissionsAccepted: false,
       shareLevel: "label+status" as ShareLevel,
+      shareTokens: true,
       hasGrokBot: false,
     };
     this.prefs.set(actor.userId, {
       permissionsAccepted: input.permissionsAccepted ?? current.permissionsAccepted,
       shareLevel: input.shareLevel ?? current.shareLevel,
+      shareTokens: input.shareTokens ?? current.shareTokens,
       hasGrokBot: input.hasGrokBot ?? current.hasGrokBot,
     });
     const token = this.tokens.get(tokenKey(eventId, actor.userId));
@@ -630,6 +641,7 @@ export class LobbyMemory {
       claimed,
       permissionsAccepted: prefs?.permissionsAccepted ?? false,
       shareLevel: prefs?.shareLevel ?? "label+status",
+      shareTokens: prefs?.shareTokens ?? true,
       hasGrokBot: prefs?.hasGrokBot ?? actor.slot === "you",
     };
   }
@@ -655,6 +667,14 @@ export class LobbyMemory {
       ...attendee,
       isCurrentUser: currentUserId !== null && attendee.id === currentUserId,
     };
+  }
+
+  private shouldPresentToken(token: LobbyToken, actor: Actor): boolean {
+    if (canViewFullToken(actor, token.botId)) {
+      return true;
+    }
+    const prefs = this.prefs.get(token.botId);
+    return prefs?.shareTokens ?? true;
   }
 
   private presentToken(token: LobbyToken, actor: Actor): LobbyToken {

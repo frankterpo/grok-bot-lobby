@@ -1,8 +1,8 @@
 "use client";
 
-import { TOKEN_STATUSES, shareLevelCopy, SHARE_LEVELS, tokenStatusCopy, type ShareLevel, type TokenStatus } from "@/lib/domain";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
+
+import { shareLevelCopy, SHARE_LEVELS, type ShareLevel } from "@/lib/domain";
 import {
   Select,
   SelectContent,
@@ -10,74 +10,104 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { cn } from "@/lib/utils";
 
-type TokenComposerProps = {
-  initialLabel: string;
-  initialStatus: TokenStatus;
+type TokenShareToggleProps = {
+  shareTokens: boolean;
   shareLevel: ShareLevel;
-  onSync: (input: { taskLabel: string; status: TokenStatus; shareLevel: ShareLevel }) => Promise<void>;
+  lastSyncedLabel?: string | null;
+  onUpdate: (input: { shareTokens: boolean; shareLevel?: ShareLevel }) => Promise<void>;
 };
 
-export function TokenComposer({ initialLabel, initialStatus, shareLevel, onSync }: TokenComposerProps) {
-  const [taskLabel, setTaskLabel] = useState(initialLabel);
-  const [status, setStatus] = useState<TokenStatus>(initialStatus);
-  const [level, setLevel] = useState<ShareLevel>(shareLevel);
+export function TokenShareToggle({
+  shareTokens,
+  shareLevel,
+  lastSyncedLabel,
+  onUpdate,
+}: TokenShareToggleProps) {
+  const [enabled, setEnabled] = useState(shareTokens);
+  const [level, setLevel] = useState(shareLevel);
   const [pending, setPending] = useState(false);
 
-  async function submit(event: React.FormEvent): Promise<void> {
-    event.preventDefault();
+  useEffect(() => {
+    setEnabled(shareTokens);
+  }, [shareTokens]);
+
+  useEffect(() => {
+    setLevel(shareLevel);
+  }, [shareLevel]);
+
+  async function toggle(): Promise<void> {
+    const next = !enabled;
     setPending(true);
     try {
-      await onSync({ taskLabel, status, shareLevel: level });
+      await onUpdate({ shareTokens: next, shareLevel: level });
+      setEnabled(next);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function changeLevel(next: ShareLevel): Promise<void> {
+    setLevel(next);
+    setPending(true);
+    try {
+      await onUpdate({ shareTokens: enabled, shareLevel: next });
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-2 border-t border-[#262626] p-3">
-      <p className="micro text-white/40">What your bot is on</p>
-      <Input
-        value={taskLabel}
-        onChange={(event) => setTaskLabel(event.target.value)}
-        placeholder="Setting up event credits"
-        className="h-8 border-[#262626] bg-[#111] text-[12px]"
-      />
-      <div className="flex gap-2">
-        <Select value={status} onValueChange={(value) => setStatus(value as TokenStatus)}>
-          <SelectTrigger size="sm" className="h-7 flex-1 border-[#262626] bg-[#111] text-[11px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-[#161616]">
-            {TOKEN_STATUSES.map((item) => (
-              <SelectItem key={item} value={item}>
-                {tokenStatusCopy(item)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          type="submit"
-          size="sm"
-          disabled={pending || taskLabel.trim().length === 0}
-          className="bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+    <div className="flex flex-col gap-2 border-t border-[#262626] p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12px] text-white/80">Share task token overview with lobby</p>
+          <p className="mt-0.5 text-[11px] text-white/40">
+            {enabled
+              ? lastSyncedLabel
+                ? `Showing last bot sync: ${lastSyncedLabel}`
+                : "Your bot-synced task appears on your card when available."
+              : "Others won't see the task strip on your card."}
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-label="Share task token overview with lobby"
+          disabled={pending}
+          onClick={() => void toggle()}
+          className={cn(
+            "relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-50",
+            enabled ? "bg-[#f59e0b]" : "bg-[#262626]",
+          )}
         >
-          Sync
-        </Button>
+          <span
+            className={cn(
+              "absolute top-0.5 size-4 rounded-full bg-white transition-transform",
+              enabled ? "left-4" : "left-0.5",
+            )}
+          />
+        </button>
       </div>
-      <Select value={level} onValueChange={(value) => setLevel(value as ShareLevel)}>
-        <SelectTrigger size="sm" className="h-7 border-[#262626] bg-[#111] text-[11px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className="bg-[#161616]">
-          {SHARE_LEVELS.map((item) => (
-            <SelectItem key={item} value={item}>
-              {shareLevelCopy(item)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </form>
+      {enabled ? (
+        <label className="block">
+          <span className="micro text-white/40">Share level</span>
+          <Select value={level} onValueChange={(value) => void changeLevel(value as ShareLevel)}>
+            <SelectTrigger size="sm" className="mt-1 h-7 border-[#262626] bg-[#111] text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#161616]">
+              {SHARE_LEVELS.map((item) => (
+                <SelectItem key={item} value={item}>
+                  {shareLevelCopy(item)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+      ) : null}
+    </div>
   );
 }

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { ChevronRight, PanelRightClose } from "lucide-react";
 
-import { TokenComposer } from "@/components/lobby/token-composer";
+import { TokenShareToggle } from "@/components/lobby/token-composer";
 import { TokenExchanges } from "@/components/lobby/token-exchanges";
 import { GrokBot } from "@/components/lobby/grok-bot";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,6 @@ import {
   type ShareLevel,
   type Squad,
   type TokenExchangeRequest,
-  type TokenStatus,
 } from "@/lib/domain";
 import { canEditOwnBot, canInviteToSquad, canLeaveSquad, canProposeExchange, canRequestJoin } from "@/lib/policy";
 import { cn } from "@/lib/utils";
@@ -46,7 +45,9 @@ type ContextPanelProps = {
   onPropose: (input: { toBotId?: string; toSquadId?: string }) => Promise<void>;
   onApprove: (requestId: string) => Promise<void>;
   onReject: (requestId: string) => Promise<void>;
-  onSync: (input: { taskLabel: string; status: TokenStatus; shareLevel: ShareLevel }) => Promise<void>;
+  shareTokens: boolean;
+  shareLevel: ShareLevel;
+  onSharePrefs: (input: { shareTokens: boolean; shareLevel?: ShareLevel }) => Promise<void>;
   onEdit: () => void;
 };
 
@@ -69,7 +70,9 @@ export function ContextPanel({
   onPropose,
   onApprove,
   onReject,
-  onSync,
+  shareTokens,
+  shareLevel,
+  onSharePrefs,
   onEdit,
 }: ContextPanelProps) {
   const header = headerFor(selection, attendees, squads);
@@ -108,7 +111,9 @@ export function ContextPanel({
           onPropose,
           onApprove,
           onReject,
-          onSync,
+          shareTokens,
+          shareLevel,
+          onSharePrefs,
           onEdit,
         })}
       </div>
@@ -153,7 +158,9 @@ function panelBody(args: Omit<ContextPanelProps, "onCollapse">): ReactNode {
           event={args.event}
           exchanges={args.exchanges}
           attendees={args.attendees}
-          onSync={args.onSync}
+          shareTokens={args.shareTokens}
+          shareLevel={args.shareLevel}
+          onSharePrefs={args.onSharePrefs}
           onEdit={args.onEdit}
           onApprove={args.onApprove}
           onReject={args.onReject}
@@ -291,7 +298,9 @@ function YouDetail({
   event,
   exchanges,
   attendees,
-  onSync,
+  shareTokens,
+  shareLevel,
+  onSharePrefs,
   onEdit,
   onApprove,
   onReject,
@@ -306,7 +315,9 @@ function YouDetail({
   event: Event;
   exchanges: TokenExchangeRequest[];
   attendees: Attendee[];
-  onSync: ContextPanelProps["onSync"];
+  shareTokens: boolean;
+  shareLevel: ShareLevel;
+  onSharePrefs: ContextPanelProps["onSharePrefs"];
   onEdit: () => void;
   onApprove: (requestId: string) => Promise<void>;
   onReject: (requestId: string) => Promise<void>;
@@ -340,11 +351,11 @@ function YouDetail({
           </div>
         ) : null}
         {canEditOwnBot(actor, attendee.id) ? (
-          <TokenComposer
-            initialLabel={token?.taskLabel ?? attendee.botTaskLabel ?? ""}
-            initialStatus={token?.status ?? "working"}
-            shareLevel={token?.shareLevel ?? (actor.role === "host" ? "full" : "label+status")}
-            onSync={onSync}
+          <TokenShareToggle
+            shareTokens={shareTokens}
+            shareLevel={shareLevel}
+            lastSyncedLabel={token?.taskLabel ?? attendee.botTaskLabel}
+            onUpdate={onSharePrefs}
           />
         ) : null}
       </div>

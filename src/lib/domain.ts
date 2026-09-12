@@ -130,6 +130,7 @@ export type SessionView = {
   claimed: boolean;
   permissionsAccepted: boolean;
   shareLevel: ShareLevel;
+  shareTokens: boolean;
   hasGrokBot: boolean;
 };
 

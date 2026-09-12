@@ -70,6 +70,7 @@ export type ExchangeResolveBody = {
 export type PrefsBody = {
   eventId: string;
   shareLevel?: ShareLevel;
+  shareTokens?: boolean;
   permissionsAccepted?: boolean;
   hasGrokBot?: boolean;
 };
@@ -242,6 +243,7 @@ export function parsePrefsBody(value: unknown): PrefsBody | null {
   return {
     eventId,
     shareLevel: shareRaw && isShareLevel(shareRaw) ? shareRaw : undefined,
+    shareTokens: asBoolean(value.shareTokens) ?? undefined,
     permissionsAccepted: asBoolean(value.permissionsAccepted) ?? undefined,
     hasGrokBot: asBoolean(value.hasGrokBot) ?? undefined,
   };
