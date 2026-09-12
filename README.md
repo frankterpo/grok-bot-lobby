@@ -13,6 +13,31 @@ Open [http://127.0.0.1:4521](http://127.0.0.1:4521) (`?as=you`). Port **4521**. 
 
 No Clerk / Supabase / Luma credentials required.
 
+## Remote join (Cloudflare Tunnel)
+
+`127.0.0.1` is loopback — remote Grok Bot users cannot reach it. Fastest path: **quick tunnel** (keeps in-memory store on the host).
+
+**Host**
+
+```bash
+npm run dev          # terminal 1
+npm run tunnel       # terminal 2 — copy https://….trycloudflare.com
+```
+
+Optional: set `LOBBY_PUBLIC_URL` + `NEXT_PUBLIC_LOBBY_PUBLIC_URL` in `.env.local` (see `.env.local.example`) so the **copy join link** chip uses the public URL even while you browse localhost. Restart dev after editing.
+
+Full playbook: [`docs/remote-join.md`](docs/remote-join.md)
+
+**Remote attendee (Alice)** — clone this repo, then:
+
+```bash
+npm run join-lobby -- --code COLOOP --url https://PUBLIC_URL --name Alice --color cyan --task "Setting up event credits"
+```
+
+Seed: **COLOOP** / **event_coloop**. Keep the terminal open (30s heartbeats). Curl-only join documented in `docs/remote-join.md` if clone is not possible.
+
+**Credits:** `join-lobby` / `sync-token` npm scripts are HTTP only — they do **not** burn Grok Bot chat credits. Chat babysitting does.
+
 ## 7-step Grok Bot join checklist
 
 1. Install Grok Bot and sign in.

@@ -22,6 +22,7 @@ import {
   type ShareLevel,
 } from "@/lib/domain";
 import { assertNever } from "@/lib/domain";
+import { clientLobbyOrigin } from "@/lib/format";
 
 type JoinPath = "pick" | "returning" | "new-explain" | "new-claim";
 
@@ -29,17 +30,10 @@ type JoinFlowProps = {
   code: string;
 };
 
-function lobbyOrigin(): string {
-  if (typeof window === "undefined") {
-    return "http://127.0.0.1:4521";
-  }
-  return window.location.origin;
-}
-
 export function JoinFlow({ code }: JoinFlowProps) {
   const router = useRouter();
   const [path, setPath] = useState<JoinPath>("pick");
-  const origin = lobbyOrigin();
+  const origin = clientLobbyOrigin();
   const [name, setName] = useState("Reed");
   const [color, setColor] = useState<string>(BOT_COLORS.cyan);
   const [shareLevel, setShareLevel] = useState<ShareLevel>("label+status");
