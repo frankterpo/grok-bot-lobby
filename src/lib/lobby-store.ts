@@ -2,14 +2,8 @@ import {
   canClaimBot,
   canCreateEvent,
   canHeartbeat,
-  canInviteToSquad,
-  canLeaveSquad,
-  canProposeExchange,
-  canRequestJoin,
-  canResolveExchange,
   canShareEvent,
   canSyncToken,
-  canViewFullToken,
   roleForEvent,
 } from "@/lib/policy";
 import {
@@ -18,19 +12,13 @@ import {
   type BotContext,
   type Event,
   type ExchangeStatus,
-  type IdentitySlot,
   type LobbySnapshot,
   type LobbyToken,
   type LumaProfile,
   type PresenceRecord,
-  type SessionView,
   type ShareLevel,
-  type Squad,
-  type TokenExchangeRequest,
   type TokenStatus,
   BOT_COLORS,
-  HOST_USER_ID,
-  assertNever,
   createEventCode,
   createId,
   presenceState,
@@ -39,13 +27,29 @@ import {
 } from "@/lib/domain";
 import { joinUrl } from "@/lib/format";
 import { applyProfileInputs, profileInputsFromAttendee } from "@/lib/lobby-profiles";
+import { eventIdPresence, eventIdTokens, LobbyError } from "@/lib/lobby-store-helpers";
+import {
+  presentAttendee,
+  presentEvent,
+  presentToken,
+  sessionView,
+  shouldPresentToken,
+} from "@/lib/lobby-store-present";
+import {
+  exchangesFor,
+  inviteToSquad,
+  leaveSquad,
+  proposeExchange,
+  requestJoinSquad,
+  resolveExchange,
+  type ExchangeStore,
+} from "@/lib/lobby-store-exchange";
 import { deriveChecklist } from "@/lib/onboarding";
 import { buildToken, tokensEqual, truncateTaskLabel } from "@/lib/token-utils";
-import {
-  emptyPersistedState,
-  type PersistedLobbyState,
-} from "@/lib/lobby-persisted";
+import { emptyPersistedState, type PersistedLobbyState } from "@/lib/lobby-persisted";
 import { buildSeed, type StoredEvent, type UserPrefs } from "@/lib/seed";
+
+export { LobbyError } from "@/lib/lobby-store-helpers";
 
 type SnapshotListener = {
   actor: Actor;
@@ -77,17 +81,6 @@ type SyncInput = {
   shareLevel?: ShareLevel;
 };
 
-function clone<T>(value: T): T {
-  return structuredClone(value);
-}
-
-function hydrateSquads(event: StoredEvent): void {
-  event.squads = event.squads.map((squad) => ({
-    ...squad,
-    members: event.attendees.filter((attendee) => attendee.squadId === squad.id),
-  }));
-}
-
 type EmitFn = (eventId: string) => void;
 
 export class LobbyMemory {
@@ -98,7 +91,7 @@ export class LobbyMemory {
   private prefs = new Map<string, UserPrefs>();
   private claimed = new Map<string, Set<string>>();
   private shareCopied = new Set<string>();
-  private exchanges = new Map<string, TokenExchangeRequest>();
+  private exchanges = new Map<string, import("@/lib/domain").TokenExchangeRequest>();
   private listeners = new Map<string, Set<SnapshotListener>>();
   private externalEmit: EmitFn | null = null;
 
@@ -189,9 +182,8 @@ export class LobbyMemory {
     return { slot, userId, role, hostAuthenticated };
   }
 
-  /** @deprecated Prefer listEventsForActor — never expose all events publicly. */
   listEvents(): Event[] {
-    return [...this.events.values()].map((event) => this.presentEvent(event, null));
+    return [...this.events.values()].map((event) => presentEvent(event, null));
   }
 
   listEventsForActor(actor: Actor): Event[] {
@@ -205,7 +197,7 @@ export class LobbyMemory {
         }
         return event.attendees.some((person) => person.id === actor.userId);
       })
-      .map((event) => this.presentEvent(event, actor.userId));
+      .map((event) => presentEvent(event, actor.userId));
   }
 
   visibleEventsForActor(actor: Actor, activeEventId: string | null): Event[] {
@@ -217,7 +209,7 @@ export class LobbyMemory {
     if (!active) {
       return scoped;
     }
-    return [this.presentEvent(active, actor.userId)];
+    return [presentEvent(active, actor.userId)];
   }
 
   getStored(eventId: string): StoredEvent | null {
@@ -242,24 +234,24 @@ export class LobbyMemory {
         : this.events.size === 1
           ? ([...this.events.values()][0] ?? null)
           : null;
-    const event = stored ? this.presentEvent(stored, args.actor.userId) : null;
+    const event = stored ? presentEvent(stored, args.actor.userId) : null;
     const eventId = stored?.id ?? null;
     const tokens = eventIdTokens(this.tokens, eventId)
-      .filter((token) => this.shouldPresentToken(token, args.actor))
-      .map((token) => this.presentToken(token, args.actor));
+      .filter((token) => shouldPresentToken(token, args.actor, this.prefs))
+      .map((token) => presentToken(token, args.actor, this.prefs));
     const presence = eventIdPresence(this.presence, eventId).map((record) => ({
       ...record,
       state: presenceState(record),
     }));
     const claimedUserIds = eventId ? [...(this.claimed.get(eventId) ?? [])] : [];
-    const session = this.sessionView(args.actor, stored);
+    const session = sessionView(args.actor, stored, this.prefs, this.claimed);
     const join = stored ? joinUrl(args.origin, stored.eventCode) : null;
     const profiles = event
       ? event.attendees
           .map((attendee) => this.profiles.get(attendee.id))
           .filter((profile): profile is LumaProfile => Boolean(profile))
       : [];
-    const exchanges = eventId ? this.exchangesFor(eventId) : [];
+    const exchanges = eventId ? exchangesFor(this.exchange(), eventId) : [];
     const pendingApprovalCount = exchanges.filter((item) => item.status === "pending").length;
     const activeBotCount = presence.filter((record) => record.state === "active").length;
 
@@ -321,7 +313,7 @@ export class LobbyMemory {
     this.claimed.set(id, new Set([actor.userId]));
     this.ensurePresence(id, actor.userId, true);
     this.emit(id);
-    return { event: this.presentEvent(stored, actor.userId), joinUrl: joinUrl(origin, code) };
+    return { event: presentEvent(stored, actor.userId), joinUrl: joinUrl(origin, code) };
   }
 
   markShareCopied(actor: Actor, eventId: string): LobbySnapshot {
@@ -451,80 +443,15 @@ export class LobbyMemory {
   }
 
   invite(actor: Actor, eventId: string, attendeeId: string, squadId?: string): LobbySnapshot {
-    const stored = this.requireEvent(eventId);
-    const live = this.actor(actor, stored);
-    const target = stored.attendees.find((person) => person.id === attendeeId);
-    if (!target) {
-      throw new LobbyError("That attendee isn't in this lobby.", 404);
-    }
-    const squad = squadId
-      ? stored.squads.find((item) => item.id === squadId)
-      : this.squadForInvite(stored, live);
-    if (squad && !canInviteToSquad(live, stored, squad)) {
-      throw new LobbyError("You can't invite to that squad.", 403);
-    }
-    if (!squad) {
-      if (!canInviteToSquad(live, stored)) {
-        throw new LobbyError("You can't invite to a squad.", 403);
-      }
-    }
-    const destination = squad ?? this.createSquad(stored, live.userId ?? stored.hostUserId);
-    if (live.userId && live.userId !== target.id) {
-      const organizer = stored.attendees.find((person) => person.id === live.userId);
-      if (organizer && organizer.squadId !== destination.id) {
-        this.moveToSquad(stored, live.userId, destination.id);
-      }
-    }
-    this.moveToSquad(stored, target.id, destination.id);
-    this.emit(eventId);
-    return this.snapshot({ eventId, actor: live, origin: "" });
+    return inviteToSquad(this.exchange(), actor, eventId, attendeeId, squadId);
   }
 
   requestJoin(actor: Actor, eventId: string, squadId: string): LobbySnapshot {
-    const stored = this.requireEvent(eventId);
-    const live = this.actor(actor, stored);
-    if (!live.userId) {
-      throw new LobbyError("Claim your bot before requesting a squad.", 403);
-    }
-    const squad = stored.squads.find((item) => item.id === squadId);
-    if (!squad) {
-      throw new LobbyError("That squad isn't here.", 404);
-    }
-    if (!canRequestJoin(live, squad)) {
-      throw new LobbyError("This squad is closed, or you're already in it.", 403);
-    }
-    this.moveToSquad(stored, live.userId, squad.id);
-    this.emit(eventId);
-    return this.snapshot({ eventId, actor: live, origin: "" });
+    return requestJoinSquad(this.exchange(), actor, eventId, squadId);
   }
 
   leaveSquad(actor: Actor, eventId: string, squadId?: string): LobbySnapshot {
-    const stored = this.requireEvent(eventId);
-    const live = this.actor(actor, stored);
-    if (!live.userId) {
-      throw new LobbyError("Claim your bot before leaving a squad.", 403);
-    }
-    const attendee = stored.attendees.find((person) => person.id === live.userId);
-    const targetId = squadId ?? attendee?.squadId;
-    const squad = stored.squads.find((item) => item.id === targetId);
-    if (!attendee || !squad) {
-      throw new LobbyError("You're not in that squad.", 404);
-    }
-    if (!canLeaveSquad(live, squad)) {
-      throw new LobbyError("You're not in that squad.", 403);
-    }
-    stored.attendees = stored.attendees.map((person) =>
-      person.id === live.userId ? { ...person, squadId: undefined } : person,
-    );
-    hydrateSquads(stored);
-    const remaining = stored.squads.find((item) => item.id === squad.id);
-    if (remaining && remaining.members.length === 0) {
-      stored.squads = stored.squads.filter((item) => item.id !== squad.id);
-    } else if (remaining && remaining.organizerId === live.userId && remaining.members[0]) {
-      remaining.organizerId = remaining.members[0].id;
-    }
-    this.emit(eventId);
-    return this.snapshot({ eventId, actor: live, origin: "" });
+    return leaveSquad(this.exchange(), actor, eventId, squadId);
   }
 
   proposeExchange(
@@ -540,67 +467,11 @@ export class LobbyMemory {
       shareLevel?: ShareLevel;
     },
   ): LobbySnapshot {
-    const stored = this.requireEvent(input.eventId);
-    const live = this.actor(actor, stored);
-    if (!canProposeExchange(live, input.fromBotId)) {
-      throw new LobbyError("You can only propose a token from your own bot.", 403);
-    }
-    if (input.toBotId && !stored.attendees.some((person) => person.id === input.toBotId)) {
-      throw new LobbyError("That bot isn't in this lobby.", 404);
-    }
-    if (input.toSquadId && !stored.squads.some((squad) => squad.id === input.toSquadId)) {
-      throw new LobbyError("That squad isn't here.", 404);
-    }
-    const current = this.tokens.get(tokenKey(input.eventId, input.fromBotId));
-    const label = (input.taskLabel ?? current?.taskLabel ?? "").trim();
-    if (!label) {
-      throw new LobbyError("Sync a task token before proposing an exchange.", 400);
-    }
-    const token: LobbyToken = {
-      botId: input.fromBotId,
-      eventId: input.eventId,
-      taskLabel: label,
-      status: input.status ?? current?.status ?? "working",
-      focus: input.focus ?? current?.focus,
-      timestamp: new Date().toISOString(),
-      shareLevel: input.shareLevel ?? current?.shareLevel ?? "label+status",
-    };
-    const request: TokenExchangeRequest = {
-      id: createId("xchg"),
-      eventId: input.eventId,
-      fromBotId: input.fromBotId,
-      toBotId: input.toBotId,
-      toSquadId: input.toSquadId,
-      token,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
-    this.exchanges.set(request.id, request);
-    this.emit(input.eventId);
-    return this.snapshot({ eventId: input.eventId, actor: live, origin: "" });
+    return proposeExchange(this.exchange(), actor, input);
   }
 
   resolveExchange(actor: Actor, eventId: string, requestId: string, status: ExchangeStatus): LobbySnapshot {
-    if (status === "pending") {
-      throw new LobbyError("Resolve with approved or rejected.", 400);
-    }
-    const stored = this.requireEvent(eventId);
-    const live = this.actor(actor, stored);
-    const request = this.exchanges.get(requestId);
-    if (!request || request.eventId !== eventId) {
-      throw new LobbyError("No token exchange with that id.", 404);
-    }
-    if (request.status !== "pending") {
-      throw new LobbyError("That exchange is already resolved.", 409);
-    }
-    if (!canResolveExchange(live, request, stored)) {
-      throw new LobbyError("Only the recipient, squad organizer, or host can resolve this.", 403);
-    }
-    request.status = status;
-    request.resolvedAt = new Date().toISOString();
-    request.resolvedBy = live.userId ?? undefined;
-    this.emit(eventId);
-    return this.snapshot({ eventId, actor: live, origin: "" });
+    return resolveExchange(this.exchange(), actor, eventId, requestId, status);
   }
 
   context(actor: Actor, eventId: string, botId: string): BotContext {
@@ -617,13 +488,13 @@ export class LobbyMemory {
       claimed: false,
     };
     const rawToken = this.tokens.get(tokenKey(eventId, botId)) ?? null;
-    const exchanges = this.exchangesFor(eventId);
+    const exchanges = exchangesFor(this.exchange(), eventId);
     return {
-      attendee: this.presentAttendee(attendee, live.userId),
+      attendee: presentAttendee(attendee, live.userId),
       profile: this.profiles.get(botId) ?? null,
       token:
-        rawToken && this.shouldPresentToken(rawToken, live)
-          ? this.presentToken(rawToken, live)
+        rawToken && shouldPresentToken(rawToken, live, this.prefs)
+          ? presentToken(rawToken, live, this.prefs)
           : null,
       presence: { ...record, state: presenceState(record) },
       exchanges,
@@ -687,6 +558,17 @@ export class LobbyMemory {
     return this.snapshot({ eventId, actor, origin: "" });
   }
 
+  private exchange(): ExchangeStore {
+    return {
+      exchanges: this.exchanges,
+      tokens: this.tokens,
+      requireEvent: (eventId) => this.requireEvent(eventId),
+      actor: (input, event) => this.actor(input, event),
+      snapshot: (eventId, actor) => this.snapshot({ eventId, actor, origin: "" }),
+      emit: (eventId) => this.emit(eventId),
+    };
+  }
+
   private hostAttendee(userId: string, eventId: string): Attendee {
     const existing = [...this.events.values()]
       .flatMap((event) => event.attendees)
@@ -701,40 +583,6 @@ export class LobbyMemory {
       rsvpStatus: "going",
       isCurrentUser: false,
     };
-  }
-
-  private squadForInvite(event: StoredEvent, actor: Actor): Squad | undefined {
-    if (actor.userId) {
-      const mine = event.squads.find((squad) => squad.organizerId === actor.userId);
-      if (mine) {
-        return mine;
-      }
-      const memberOf = event.squads.find((squad) => squad.members.some((member) => member.id === actor.userId));
-      if (memberOf) {
-        return memberOf;
-      }
-    }
-    return undefined;
-  }
-
-  private createSquad(event: StoredEvent, organizerId: string): Squad {
-    const squad: Squad = {
-      id: createId("squad"),
-      eventId: event.id,
-      name: `Group ${event.squads.length + 1}`,
-      organizerId,
-      members: [],
-      isOpen: true,
-    };
-    event.squads = [...event.squads, squad];
-    return squad;
-  }
-
-  private moveToSquad(event: StoredEvent, attendeeId: string, squadId: string): void {
-    event.attendees = event.attendees.map((person) =>
-      person.id === attendeeId ? { ...person, squadId } : person,
-    );
-    hydrateSquads(event);
   }
 
   private ensurePresence(eventId: string, userId: string, claimed: boolean): void {
@@ -754,78 +602,6 @@ export class LobbyMemory {
     return stored;
   }
 
-  private sessionView(actor: Actor, stored: StoredEvent | null): SessionView {
-    const prefs = actor.userId ? this.prefs.get(actor.userId) : undefined;
-    const claimed = Boolean(
-      stored && actor.userId && this.claimed.get(stored.id)?.has(actor.userId),
-    );
-    return {
-      userId: actor.userId,
-      role: stored ? roleForEvent(actor.userId, stored.hostUserId, stored) : actor.role,
-      slot: actor.slot,
-      claimed,
-      permissionsAccepted: prefs?.permissionsAccepted ?? false,
-      shareLevel: prefs?.shareLevel ?? "label+status",
-      shareTokens: prefs?.shareTokens ?? true,
-      hasGrokBot: prefs?.hasGrokBot ?? actor.slot === "you",
-    };
-  }
-
-  private presentEvent(stored: StoredEvent, currentUserId: string | null): Event {
-    hydrateSquads(stored);
-    return {
-      id: stored.id,
-      name: stored.name,
-      date: stored.date,
-      lumaEventId: stored.lumaEventId,
-      eventCode: stored.eventCode,
-      attendees: stored.attendees.map((person) => this.presentAttendee(person, currentUserId)),
-      squads: stored.squads.map((squad) => ({
-        ...squad,
-        members: squad.members.map((member) => this.presentAttendee(member, currentUserId)),
-      })),
-    };
-  }
-
-  private presentAttendee(attendee: Attendee, currentUserId: string | null): Attendee {
-    return {
-      ...attendee,
-      isCurrentUser: currentUserId !== null && attendee.id === currentUserId,
-    };
-  }
-
-  private shouldPresentToken(token: LobbyToken, actor: Actor): boolean {
-    if (canViewFullToken(actor, token.botId)) {
-      return true;
-    }
-    const prefs = this.prefs.get(token.botId);
-    return prefs?.shareTokens ?? true;
-  }
-
-  private presentToken(token: LobbyToken, actor: Actor): LobbyToken {
-    if (canViewFullToken(actor, token.botId)) {
-      return clone(token);
-    }
-    switch (token.shareLevel) {
-      case "label":
-        return {
-          ...token,
-          status: "idle",
-          focus: undefined,
-        };
-      case "label+status":
-        return { ...token, focus: undefined };
-      case "full":
-        return clone(token);
-      default:
-        return assertNever(token.shareLevel, "share level");
-    }
-  }
-
-  private exchangesFor(eventId: string): TokenExchangeRequest[] {
-    return [...this.exchanges.values()].filter((item) => item.eventId === eventId);
-  }
-
   private emit(eventId: string): void {
     const listeners = this.listeners.get(eventId);
     if (listeners) {
@@ -835,32 +611,6 @@ export class LobbyMemory {
     }
     this.externalEmit?.(eventId);
   }
-}
-
-export class LobbyError extends Error {
-  readonly status: number;
-
-  constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
-  }
-}
-
-function eventIdTokens(tokens: Map<string, LobbyToken>, eventId: string | null): LobbyToken[] {
-  if (!eventId) {
-    return [];
-  }
-  return [...tokens.values()].filter((token) => token.eventId === eventId);
-}
-
-function eventIdPresence(
-  presence: Map<string, PresenceRecord>,
-  eventId: string | null,
-): PresenceRecord[] {
-  if (!eventId) {
-    return [];
-  }
-  return [...presence.values()].filter((record) => record.eventId === eventId);
 }
 
 const globalForLobby = globalThis as typeof globalThis & { __gblLobby?: LobbyMemory };
