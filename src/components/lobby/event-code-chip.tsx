@@ -28,11 +28,13 @@ export function EventCodeChip({ code, eventId, joinUrl }: EventCodeChipProps) {
     <button
       type="button"
       onClick={() => void copyJoinLink()}
-      aria-label="Copy shareable join link"
+      title={joinUrl}
+      aria-label={`Copy join link (${joinUrl})`}
       className="micro flex items-center gap-1 rounded-md border border-[#262626] bg-[#111] px-1.5 py-0.5 text-white/50 hover:text-white/80"
     >
       {copied ? <Check className="size-3" strokeWidth={1.5} /> : <Copy className="size-3" strokeWidth={1.5} />}
-      {code}
+      <span className="font-mono text-white/70">{code}</span>
+      <span className="text-white/35">{copied ? "· link copied" : "· copy join link"}</span>
     </button>
   );
 }

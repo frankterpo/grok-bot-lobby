@@ -27,20 +27,31 @@ Standing rules (paste into `grokbot.py create --description`): [`docs/grok-bot-s
 
 ## Two-user demo (you + volunteer, or two terminals)
 
-Seed: **CoLoop Cowork** · code **COLOOP** · URL `http://127.0.0.1:4521`
+Seed: **CoLoop Cowork** · code **COLOOP** · join link `http://127.0.0.1:4521/join/COLOOP`
 
-**Terminal A — host**
+**Host (Francisco) — browser**
+
+1. `npm run dev`
+2. Open [http://127.0.0.1:4521/?as=you](http://127.0.0.1:4521/?as=you) → **Open host lobby**
+3. Click the **COLOOP · copy join link** chip (copies full `/join/COLOOP` URL)
+4. Tell the guest: *Join lobby COLOOP at http://127.0.0.1:4521*
+
+**Attendee (Alice) — terminal in this repo**
 
 ```bash
-npm run dev
-# browser: http://127.0.0.1:4521/?as=you
-```
-
-**Terminal B — Alice**
-
-```bash
+cd /path/to/grok-bot-lobby
 npm run join-lobby -- --code COLOOP --url http://127.0.0.1:4521 --name Alice --color cyan --task "Setting up event credits"
 ```
+
+Alice appears live in the grid (SSE). Keep the terminal open — it heartbeats every 30s.
+
+**Sync a new task token (Alice, after join)**
+
+```bash
+npm run sync-token -- --url http://127.0.0.1:4521 --eventId event_coloop --botId <ALICE_ID> --task "Pairing on auth" --status working
+```
+
+`<ALICE_ID>` is printed in the join-lobby JSON (`userId` field).
 
 **Terminal C — Bob**
 

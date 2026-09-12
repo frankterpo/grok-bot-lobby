@@ -29,9 +29,17 @@ type JoinFlowProps = {
   code: string;
 };
 
+function lobbyOrigin(): string {
+  if (typeof window === "undefined") {
+    return "http://127.0.0.1:4521";
+  }
+  return window.location.origin;
+}
+
 export function JoinFlow({ code }: JoinFlowProps) {
   const router = useRouter();
   const [path, setPath] = useState<JoinPath>("pick");
+  const origin = lobbyOrigin();
   const [name, setName] = useState("Reed");
   const [color, setColor] = useState<string>(BOT_COLORS.cyan);
   const [shareLevel, setShareLevel] = useState<ShareLevel>("label+status");
@@ -93,6 +101,7 @@ export function JoinFlow({ code }: JoinFlowProps) {
         {joinBody({
           path,
           code,
+          origin,
           name,
           color,
           shareLevel,
@@ -121,6 +130,7 @@ export function JoinFlow({ code }: JoinFlowProps) {
 function joinBody(args: {
   path: JoinPath;
   code: string;
+  origin: string;
   name: string;
   color: string;
   shareLevel: ShareLevel;
@@ -146,7 +156,7 @@ function joinBody(args: {
             rules, not this form.
           </p>
           <pre className="mt-3 overflow-x-auto rounded-md border border-[#262626] bg-[#0d0d0d] p-2 text-[11px] text-white/70">
-            {`npm run join-lobby -- --code ${args.code} --url http://127.0.0.1:4521 --name Alice --color cyan --task "Setting up event credits"`}
+            {`npm run join-lobby -- --code ${args.code} --url ${args.origin} --name Alice --color cyan --task "Setting up event credits"`}
           </pre>
           {args.error ? <p className="mt-3 text-[12px] text-red-400">{args.error}</p> : null}
           <button

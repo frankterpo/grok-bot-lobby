@@ -25,6 +25,7 @@ import {
 import {
   HEARTBEAT_MS,
   HOST_USER_ID,
+  isBotWorking,
   type Actor,
   type Event,
   type LobbySnapshot,
@@ -32,6 +33,7 @@ import {
   type ShareLevel,
   presenceState,
 } from "@/lib/domain";
+import { canShareEvent } from "@/lib/policy";
 import { CHECKLIST_COPY } from "@/lib/onboarding";
 
 export function LobbyApp() {
@@ -170,9 +172,8 @@ export function LobbyApp() {
       return false;
     }
     const record = snapshot.presence.find((item) => item.userId === currentAttendee.id);
-    const state = record ? presenceState(record, now) : "offline";
     const token = snapshot.tokens.find((item) => item.botId === currentAttendee.id);
-    return state === "active" && token?.status === "working";
+    return isBotWorking(record, token, now);
   }, [currentAttendee, snapshot, now]);
 
   const solo = useMemo(() => {
@@ -342,7 +343,18 @@ export function LobbyApp() {
             <p className="micro text-white/40">Grok Bot Lobby</p>
             <p className="text-[13px] text-white/85">{snapshot.event?.name ?? "No event"}</p>
             {snapshot.event && snapshot.joinUrl ? (
-              <EventCodeChip code={snapshot.event.eventCode} eventId={snapshot.event.id} joinUrl={snapshot.joinUrl} />
+              <>
+                <EventCodeChip code={snapshot.event.eventCode} eventId={snapshot.event.id} joinUrl={snapshot.joinUrl} />
+                {canShareEvent(actor) ? (
+                  <p className="micro mt-1 max-w-md text-white/35">
+                    Click the chip to copy{" "}
+                    <span className="font-mono text-white/45">{snapshot.joinUrl}</span>. Tell your guest bot:{" "}
+                    <span className="text-white/50">
+                      Join lobby {snapshot.event.eventCode} at {new URL(snapshot.joinUrl).origin}
+                    </span>
+                  </p>
+                ) : null}
+              </>
             ) : null}
           </div>
           <div className="flex items-center gap-3">
