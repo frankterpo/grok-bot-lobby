@@ -68,7 +68,7 @@ export function BotGrid({
         {solo.length === 0 ? (
           <p className="text-[12px] text-white/40">No bots in the room yet. Join via Grok Bot / join-lobby.</p>
         ) : (
-          <div className="grid auto-rows-fr grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 [&>*]:min-w-0">
+          <div className="grid auto-rows-fr grid-cols-[repeat(auto-fill,minmax(100px,140px))] justify-items-stretch gap-2">
             {visible.map((attendee) => (
               <BotCard
                 key={attendee.id}
@@ -86,7 +86,7 @@ export function BotGrid({
 
       <section>
         <h2 className="micro mb-3 text-white/40">Group</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] justify-items-stretch gap-3 [&>*]:max-w-[220px]">
           {squads.map((squad) => {
             const isYourSquad = squad.members.some((member) => member.isCurrentUser);
             const squadSelected =

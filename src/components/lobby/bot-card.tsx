@@ -21,7 +21,7 @@ export function BotCard({ attendee, token, presence, selected, now, onSelect }: 
       type="button"
       onClick={onSelect}
       className={cn(
-        "group flex h-full min-h-[100px] w-full min-w-0 flex-col items-center justify-center gap-1.5 rounded-lg border p-2 text-center transition-colors",
+        "group flex h-full min-h-[100px] w-full max-w-[140px] flex-col items-center justify-center gap-1.5 rounded-lg border p-2 text-center transition-colors",
         selected
           ? "border-white/25 bg-[#161616]"
           : "border-transparent hover:border-[#262626] hover:bg-[#161616]",
