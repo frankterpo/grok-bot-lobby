@@ -1,6 +1,6 @@
 import { GrokBot } from "@/components/lobby/grok-bot";
 import { PresenceDot } from "@/components/lobby/presence-dot";
-import { presenceState, type Attendee, type LobbyToken, type PresenceRecord } from "@/lib/domain";
+import { isBotWorking, presenceState, type Attendee, type LobbyToken, type PresenceRecord } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 
 type BotCardProps = {
@@ -14,7 +14,7 @@ type BotCardProps = {
 
 export function BotCard({ attendee, token, presence, selected, now, onSelect }: BotCardProps) {
   const state = presence ? presenceState(presence, now) : "offline";
-  const animated = state === "active" && token?.status === "working";
+  const animated = isBotWorking(presence, token, now);
 
   return (
     <button

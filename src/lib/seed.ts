@@ -198,7 +198,7 @@ export function buildSeed(): SeedBundle {
       botId: HOST_USER_ID,
       eventId: SEED_EVENT_ID,
       taskLabel: "Hosting CoLoop",
-      status: "working",
+      status: "idle",
       focus: "Lobby share link",
       timestamp: now,
       shareLevel: "full",

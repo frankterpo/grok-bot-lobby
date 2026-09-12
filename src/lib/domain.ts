@@ -272,6 +272,26 @@ export function presenceState(
   return "active";
 }
 
+/**
+ * Working animation gate — all must be true:
+ * 1. Bot claimed with a recent heartbeat (`presenceState === "active"`, within STALE_AFTER_MS)
+ * 2. Lobby token status is `"working"` (not idle/done/waiting)
+ * 3. Offline, stale, and unclaimed demo seed bots fail #1 automatically
+ *
+ * Token `timestamp` is intentionally not checked: join-lobby syncs status once and
+ * heartbeats keep presence live for long-running tasks.
+ */
+export function isBotWorking(
+  presence: PresenceRecord | undefined,
+  token: LobbyToken | undefined,
+  now = Date.now(),
+): boolean {
+  if (!presence || !token || token.status !== "working") {
+    return false;
+  }
+  return presenceState(presence, now) === "active";
+}
+
 export function presenceCopy(state: PresenceState): string {
   switch (state) {
     case "active":

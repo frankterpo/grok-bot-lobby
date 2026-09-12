@@ -201,22 +201,13 @@
   }
 }
 
-/* Working: gently active — not frantic. */
-/* Working: x.ai-style rainbow bands sweep across the head (CSS stand-in for rAF trail belts). */
-@keyframes grok-bot-sweep-band {
-  0% {
-    transform: rotate(-26deg) translateX(-170px);
-    opacity: 0;
+/* Working: rainbow belts orbit the head circumference (CSS stand-in for x.ai rAF trail engine). */
+@keyframes grok-bot-belt-orbit {
+  from {
+    transform: rotate(var(--grok-bot-belt-start, 0deg));
   }
-  12% {
-    opacity: 0.88;
-  }
-  88% {
-    opacity: 0.88;
-  }
-  100% {
-    transform: rotate(-26deg) translateX(170px);
-    opacity: 0;
+  to {
+    transform: rotate(calc(var(--grok-bot-belt-start, 0deg) + 360deg));
   }
 }
 
@@ -226,7 +217,7 @@
     transform: scale(1) rotate(0deg);
   }
   50% {
-    transform: scale(1.012) rotate(-0.6deg);
+    transform: scale(1.018) rotate(-0.8deg);
   }
 }
 
@@ -298,22 +289,25 @@
   }
 
   .grok-bot-lazy.grok-bot-mark--working > svg {
-    animation: grok-bot-work-bob 2.6s ease-in-out infinite;
+    animation: grok-bot-work-bob 1.8s ease-in-out infinite;
     transform-origin: center;
   }
 
   .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__eyes {
-    animation: grok-bot-work-eye 2.2s ease-in-out infinite;
+    animation: grok-bot-work-eye 1.6s ease-in-out infinite;
     transform-origin: center;
     transform-box: fill-box;
   }
 
-  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__sweep-band {
+  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__belt-orbit {
     transform-box: fill-box;
     transform-origin: 114.5px 114.5px;
-    animation: grok-bot-sweep-band 2.75s linear infinite;
-    animation-delay: var(--grok-bot-sweep-delay, 0ms);
-    opacity: 0;
+    animation: grok-bot-belt-orbit 2.4s linear infinite;
+    animation-delay: var(--grok-bot-belt-delay, 0ms);
+  }
+
+  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__belt-arc {
+    opacity: 0.92;
   }
 }
 
@@ -321,11 +315,11 @@
   .grok-bot-lazy > svg,
   .grok-bot-lazy .grok-bot-mark__eyes,
   .grok-bot-lazy .grok-bot-mark__eye,
-  .grok-bot-lazy .grok-bot-mark__sweep-band {
+  .grok-bot-lazy .grok-bot-mark__belt-orbit {
     animation: none !important;
   }
 
-  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__sweeps {
+  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__belts {
     display: none;
   }
 }

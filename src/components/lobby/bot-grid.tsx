@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 
 import { BotCard } from "@/components/lobby/bot-card";
 import { GroupClusterAvatar } from "@/components/lobby/group-cluster-avatar";
-import { presenceState, type Attendee, type LobbyToken, type PresenceRecord, type Squad } from "@/lib/domain";
+import { isBotWorking, type Attendee, type LobbyToken, type PresenceRecord, type Squad } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 
 function isWorking(
@@ -15,9 +15,8 @@ function isWorking(
   now: number,
 ): boolean {
   const record = presence.find((item) => item.userId === attendeeId);
-  const state = record ? presenceState(record, now) : "offline";
   const token = tokens.find((item) => item.botId === attendeeId);
-  return state === "active" && token?.status === "working";
+  return isBotWorking(record, token, now);
 }
 
 type BotGridProps = {

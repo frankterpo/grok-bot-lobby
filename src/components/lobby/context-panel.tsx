@@ -10,6 +10,7 @@ import { PresenceDot } from "@/components/lobby/presence-dot";
 import { Button } from "@/components/ui/button";
 import {
   assertNever,
+  isBotWorking,
   presenceCopy,
   presenceState,
   receivedTokensFor,
@@ -238,7 +239,7 @@ function DetailHeader({
   now: number;
 }) {
   const state = presence ? presenceState(presence, now) : "offline";
-  const animated = state === "active" && token?.status === "working";
+  const animated = isBotWorking(presence, token, now);
 
   return (
     <div className="flex items-center gap-2.5 border-b border-[#262626] px-3 py-3">
