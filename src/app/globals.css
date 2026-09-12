@@ -202,6 +202,24 @@
 }
 
 /* Working: gently active — not frantic. */
+/* Working: x.ai-style rainbow bands sweep across the head (CSS stand-in for rAF trail belts). */
+@keyframes grok-bot-sweep-band {
+  0% {
+    transform: rotate(-26deg) translateX(-170px);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.88;
+  }
+  88% {
+    opacity: 0.88;
+  }
+  100% {
+    transform: rotate(-26deg) translateX(170px);
+    opacity: 0;
+  }
+}
+
 @keyframes grok-bot-work-bob {
   0%,
   100% {
@@ -289,13 +307,26 @@
     transform-origin: center;
     transform-box: fill-box;
   }
+
+  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__sweep-band {
+    transform-box: fill-box;
+    transform-origin: 114.5px 114.5px;
+    animation: grok-bot-sweep-band 2.75s linear infinite;
+    animation-delay: var(--grok-bot-sweep-delay, 0ms);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .grok-bot-lazy > svg,
   .grok-bot-lazy .grok-bot-mark__eyes,
-  .grok-bot-lazy .grok-bot-mark__eye {
+  .grok-bot-lazy .grok-bot-mark__eye,
+  .grok-bot-lazy .grok-bot-mark__sweep-band {
     animation: none !important;
+  }
+
+  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__sweeps {
+    display: none;
   }
 }
 

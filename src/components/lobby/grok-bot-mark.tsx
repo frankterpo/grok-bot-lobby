@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useId, type CSSProperties } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,14 @@ export const GROK_BOT_MARK_RIGHT_EYE =
   "M176.61 37.08L178.72 37.59L180.7 38.48L182.52 39.65L184.2 41.03L185.71 42.59L187.03 44.31L188.2 46.14L189.26 48.03L190.27 49.96L191.26 51.89L192.23 53.84L193.16 55.8L194.05 57.78L194.92 59.77L195.74 61.78L196.53 63.8L197.27 65.84L197.97 67.9L198.47 70.01L198.63 72.18L198.4 74.33L197.58 76.33L195.95 77.72L193.83 78.08L191.71 77.65L189.76 76.69L188.03 75.38L186.53 73.82L185.28 72.05L184.25 70.13L183.4 68.14L182.63 66.11L181.87 64.07L181.07 62.05L180.25 60.04L179.39 58.05L178.49 56.07L177.57 54.1L176.61 52.15L175.62 50.22L174.59 48.31L173.53 46.41L172.54 44.48L171.86 42.42L171.76 40.26L172.62 38.3L174.45 37.19Z";
 
 const EYE_FILL = "#141414";
+
+/** x.ai working trails: hsl(H 56% L%) stops along each band gradient. */
+const SWEEP_BANDS = [
+  { hue: 214, delayMs: 0 },
+  { hue: 297, delayMs: 680 },
+  { hue: 13, delayMs: 1360 },
+  { hue: 106, delayMs: 2040 },
+] as const;
 
 /** Spread idle phase across bots so a grid does not pulse in sync. */
 function restAnimationDelayMs(seed: string): number {
@@ -54,6 +62,8 @@ export function GrokBotMark({
   restSeed,
   className,
 }: GrokBotMarkProps) {
+  const clipId = useId().replace(/:/g, "");
+
   return (
     <span
       aria-hidden
@@ -79,6 +89,36 @@ export function GrokBotMark({
         className="block size-full overflow-visible"
         xmlns="http://www.w3.org/2000/svg"
       >
+        <defs>
+          <clipPath id={clipId}>
+            <path d={GROK_BOT_MARK_HEAD} />
+          </clipPath>
+          {animated
+            ? SWEEP_BANDS.map((band, index) => (
+                <linearGradient
+                  key={band.hue}
+                  id={`${clipId}-sweep-${index}`}
+                  gradientUnits="userSpaceOnUse"
+                  x1="0"
+                  y1="114"
+                  x2="229"
+                  y2="114"
+                >
+                  {[0, 0.25, 0.5, 0.75, 1].map((offset, stopIndex) => {
+                    const hue = (band.hue + stopIndex * 14) % 360;
+                    const lightness = 56 + stopIndex * 3;
+                    return (
+                      <stop
+                        key={offset}
+                        offset={offset.toFixed(3)}
+                        stopColor={`hsl(${hue} 56% ${lightness}%)`}
+                      />
+                    );
+                  })}
+                </linearGradient>
+              ))
+            : null}
+        </defs>
         <path className="grok-bot-mark__head" d={GROK_BOT_MARK_HEAD} fill="var(--fg)" />
         <g className="grok-bot-mark__eyes">
           <path className="grok-bot-mark__eye grok-bot-mark__eye--left" d={GROK_BOT_MARK_LEFT_EYE} fill="var(--bg)" />
@@ -88,6 +128,23 @@ export function GrokBotMark({
             fill="var(--bg)"
           />
         </g>
+        {animated ? (
+          <g className="grok-bot-mark__sweeps" clipPath={`url(#${clipId})`} aria-hidden>
+            {SWEEP_BANDS.map((band, index) => (
+              <rect
+                key={band.hue}
+                className="grok-bot-mark__sweep-band"
+                data-band={index}
+                x="-60"
+                y="-20"
+                width="32"
+                height="280"
+                fill={`url(#${clipId}-sweep-${index})`}
+                style={{ "--grok-bot-sweep-delay": `${band.delayMs}ms` } as CSSProperties}
+              />
+            ))}
+          </g>
+        ) : null}
       </svg>
     </span>
   );
