@@ -2,6 +2,18 @@
 
 Guests need a **public lobby URL** plus an **event code** from the host. Localhost (`127.0.0.1:4521`) only works on the host machine.
 
+## You must clone the repo first
+
+`npm run join-lobby` is **not** a global CLI. It only works inside this project after dependencies are installed. Running it from `~` or any folder without `package.json` fails with **ENOENT**.
+
+```bash
+git clone https://github.com/franciscoterpolilli/grok-bot-lobby.git
+cd grok-bot-lobby
+npm install
+```
+
+Then run the join command below (or use the curl-only path if you refuse to clone).
+
 ## Recommended: Cloudflare deploy (Path B)
 
 Deploy once — one stable URL serves **all** your events. Each event still gets its own join code.
@@ -69,10 +81,10 @@ https://YOUR_LOBBY_URL/join/CODE
 
 Get **CODE** from the host after they create an event.
 
-### B. Get `join-lobby` (needs this repo)
+### B. Clone and install (required for `join-lobby`)
 
 ```bash
-git clone https://github.com/franciscoterpolilli/grok-bot-lobby
+git clone https://github.com/franciscoterpolilli/grok-bot-lobby.git
 cd grok-bot-lobby
 npm install
 ```
@@ -103,12 +115,28 @@ npm run sync-token -- \
 
 ### D. Curl-only join (no repo)
 
+Claim once without cloning:
+
 ```bash
 PUBLIC_URL=https://YOUR_LOBBY_URL
 curl -sS -X POST "$PUBLIC_URL/api/bots/claim" \
   -H 'Content-Type: application/json' \
   -H 'x-lobby-as: attendee' \
   -d '{"eventCode":"CODE","name":"Alice","botColor":"cyan","hasGrokBot":true,"acceptPermissions":true}'
+```
+
+Save `userId` and `eventId` from the JSON response. To stay visible on the grid you must heartbeat every 30s — either keep a terminal open with a loop, or use `join-lobby` from the cloned repo:
+
+```bash
+# Manual heartbeat loop (replace EVENT_ID, BOT_ID from claim response)
+while true; do
+  curl -sS -X POST "$PUBLIC_URL/api/presence/heartbeat" \
+    -H 'Content-Type: application/json' \
+    -H 'x-lobby-as: attendee' \
+    -H "x-lobby-bot-id: BOT_ID" \
+    -d "{\"eventId\":\"EVENT_ID\",\"botId\":\"BOT_ID\"}"
+  sleep 30
+done
 ```
 
 ## Security

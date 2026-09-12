@@ -22,6 +22,22 @@ const DEPLOY_COMMAND = "npm run deploy";
 const WRANGLER_LOGIN = "npx wrangler login";
 const TUNNEL_INSTALL_COMMAND = "npm run tunnel:install";
 const DEV_RESTART_COMMAND = "npm run dev";
+const REPO_CLONE_URL = "https://github.com/franciscoterpolilli/grok-bot-lobby.git";
+
+function buildGuestJoinMessage(code: string, shareUrl: string, publicOrigin: string): string {
+  return [
+    `Join lobby ${code} at ${shareUrl}`,
+    "",
+    "Tell your Grok Bot:",
+    `Join lobby ${code} at ${publicOrigin}`,
+    "",
+    "Or run (clone repo first — join-lobby only works inside the project):",
+    `git clone ${REPO_CLONE_URL}`,
+    "cd grok-bot-lobby",
+    "npm install",
+    `npm run join-lobby -- --code ${code} --url ${publicOrigin} --name Guest --color cyan --task "Joining the lobby"`,
+  ].join("\n");
+}
 
 function normalizeHostnameInput(input: string): string {
   let host = input.trim().toLowerCase();
@@ -202,16 +218,7 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
   }, [shareable, publicStatus?.publicUrl, previewPublicUrl, shareUrl]);
 
   const guestMessage = useMemo(
-    () =>
-      [
-        `Join lobby ${code} at ${shareUrl}`,
-        "",
-        "Tell your Grok Bot:",
-        `Join lobby ${code} at ${publicOrigin}`,
-        "",
-        "Or run:",
-        `npm run join-lobby -- --code ${code} --url ${publicOrigin} --name Guest --color cyan --task "Joining the lobby"`,
-      ].join("\n"),
+    () => buildGuestJoinMessage(code, shareUrl, publicOrigin),
     [code, shareUrl, publicOrigin],
   );
 
@@ -544,7 +551,7 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
               </p>
             ) : (
               <>
-                <pre className="max-h-28 overflow-auto whitespace-pre-wrap rounded-lg border border-[#262626] bg-[#161616] p-2 font-mono text-[10px] leading-relaxed text-white/55">
+                <pre className="max-h-44 overflow-auto whitespace-pre-wrap rounded-lg border border-[#262626] bg-[#161616] p-2 font-mono text-[10px] leading-relaxed text-white/55">
                   {guestMessage}
                 </pre>
                 <Button
