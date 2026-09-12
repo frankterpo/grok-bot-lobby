@@ -23,6 +23,8 @@ type LobbySidebarProps = {
   actor: Actor;
   currentAttendee: Attendee | null;
   checklistItems: ChecklistItem[];
+  activeBotCount: number;
+  pendingApprovalCount: number;
   profileAnimated?: boolean;
   onSelect: (eventId: string) => void;
   onCreate: () => void;
@@ -36,6 +38,8 @@ export function LobbySidebar({
   actor,
   currentAttendee,
   checklistItems,
+  activeBotCount,
+  pendingApprovalCount,
   profileAnimated = false,
   onSelect,
   onCreate,
@@ -43,6 +47,7 @@ export function LobbySidebar({
 }: LobbySidebarProps) {
   const [query, setQuery] = useState("");
   const remainingTasks = outstandingTasksRemaining(checklistItems);
+  const adminAttentionCount = remainingTasks + pendingApprovalCount;
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -156,17 +161,17 @@ export function LobbySidebar({
                   type="button"
                   className="relative flex shrink-0 items-center justify-center px-3 py-2.5 text-white/45 transition-colors hover:bg-sidebar-accent hover:text-white/70"
                   aria-label={
-                    remainingTasks > 0
-                      ? `Outstanding tasks, ${remainingTasks} remaining`
-                      : "Outstanding tasks"
+                    adminAttentionCount > 0
+                      ? `Admin tasks, ${adminAttentionCount} remaining`
+                      : "Admin tasks"
                   }
                 />
               }
             >
               <Inbox className="size-4" strokeWidth={1.5} />
-              {remainingTasks > 0 ? (
+              {adminAttentionCount > 0 ? (
                 <span className="absolute top-1.5 right-1.5 grid min-w-[14px] place-items-center rounded-full bg-[#f59e0b] px-1 text-[9px] font-medium leading-none text-[#0d0d0d]">
-                  {remainingTasks}
+                  {adminAttentionCount}
                 </span>
               ) : null}
             </PopoverTrigger>
@@ -176,11 +181,16 @@ export function LobbySidebar({
               sideOffset={4}
               className="w-[260px] border-[#262626] bg-[#111] p-3 text-white/80 shadow-lg ring-[#262626]"
             >
-              <p className="micro mb-2 text-white/40">
-                Outstanding tasks
-                {remainingTasks > 0 ? <span className="text-sidebar-primary"> · {remainingTasks}</span> : null}
+              <p className="micro mb-2 text-white/40">Admin tasks</p>
+              <p className="mb-3 text-[11px] text-white/55">
+                {activeBotCount} active · {pendingApprovalCount} pending approvals
               </p>
-              <OutstandingTasksList items={checklistItems} />
+              {checklistItems.length > 0 ? (
+                <>
+                  <p className="micro mb-1.5 text-white/35">Onboarding</p>
+                  <OutstandingTasksList items={checklistItems} />
+                </>
+              ) : null}
             </PopoverContent>
           </Popover>
         </div>

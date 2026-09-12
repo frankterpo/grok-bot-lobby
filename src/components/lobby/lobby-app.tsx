@@ -320,6 +320,8 @@ export function LobbyApp() {
         actor={actor}
         currentAttendee={currentAttendee}
         checklistItems={snapshot.checklist}
+        activeBotCount={snapshot.activeBotCount}
+        pendingApprovalCount={snapshot.pendingApprovalCount}
         profileAnimated={profileAnimated}
         onSelect={(id) => {
           setEventId(id);
@@ -344,9 +346,6 @@ export function LobbyApp() {
             ) : null}
           </div>
           <div className="flex items-center gap-3">
-            <p className="micro text-white/40">
-              {snapshot.activeBotCount} active · {snapshot.pendingApprovalCount} pending approvals
-            </p>
             <SessionSwitcher session={snapshot.session} />
           </div>
         </header>
