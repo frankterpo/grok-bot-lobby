@@ -1,48 +1,49 @@
 # Remote join (Cloudflare Tunnel)
 
-Use this when a Grok Bot user is **not on the host machine**. Localhost (`127.0.0.1:4521`) only works on Francisco's laptop.
+Use this when a Grok Bot user is **not on the host machine**. Localhost (`127.0.0.1:4521`) only works on the host.
 
-## Host setup (Francisco)
+## Recommended: persistent named tunnel
 
-1. Start the lobby:
+For long-term remote access, use a **named tunnel** with a stable hostname — not ephemeral `trycloudflare.com` URLs.
 
-   ```bash
-   npm install
-   npm run dev
-   ```
+**Full setup:** [`docs/persistent-tunnel.md`](./persistent-tunnel.md)
 
-2. In a second terminal, start a **quick tunnel**:
+Quick summary:
 
-   ```bash
-   npm run tunnel
-   ```
+```bash
+npm run tunnel:setup -- --hostname lobby.yourdomain.com --zone yourdomain.com
+cp .env.local.example .env.local   # set LOBBY_PUBLIC_URL
+npm run tunnel:install             # macOS launchd — survives reboot
+npm run dev                        # terminal 1
+# tunnel runs via launchd, or: npm run tunnel
+```
 
-   Copy the `https://….trycloudflare.com` URL from the output.
+Stable join link:
 
-3. Optional but recommended — pin join links to the public URL even while browsing localhost:
+```
+https://lobby.yourdomain.com/join/COLOOP
+```
 
-   ```bash
-   cp .env.local.example .env.local
-   # edit both vars to the tunnel URL, then restart npm run dev
-   ```
+## Ephemeral quick tunnel (demos only)
 
-4. Open the lobby at the **public URL** (or localhost with `.env.local` set) → **Open host lobby** → copy the **COLOOP · copy join link** chip.
+`npm run tunnel:quick` prints a new `https://….trycloudflare.com` URL each run. **Do not use for production** — URL dies when the process stops.
 
-**Caveats:** Quick tunnels are ephemeral (new URL each run), have no uptime SLA, and the host must keep `npm run dev` + `npm run tunnel` running. In-memory lobby state lives on the host process.
+```bash
+npm run dev          # terminal 1
+npm run tunnel:quick # terminal 2 — copy URL, set .env.local, restart dev
+```
 
 ## Remote attendee (Alice)
 
 ### A. Join link
 
 ```
-https://<tunnel-host>.trycloudflare.com/join/COLOOP
+https://lobby.yourdomain.com/join/COLOOP
 ```
 
 Seed event: **CoLoop Cowork** · code **COLOOP** · event id **event_coloop**
 
 ### B. Get `join-lobby` (needs this repo)
-
-Minimal clone — only scripts + deps, no Grok Bot skill required for the bridge:
 
 ```bash
 git clone <grok-bot-lobby-repo-url> grok-bot-lobby
@@ -50,14 +51,14 @@ cd grok-bot-lobby
 npm install
 ```
 
-If you cannot clone, use the **curl claim** one-liner below (claim + one heartbeat only; no 30s loop).
+If you cannot clone, use the **curl claim** one-liner below.
 
-### C. Join command (replace PUBLIC_URL)
+### C. Join command
 
 ```bash
 npm run join-lobby -- \
   --code COLOOP \
-  --url https://PUBLIC_URL \
+  --url https://lobby.yourdomain.com \
   --name Alice \
   --color cyan \
   --task "Setting up event credits"
@@ -69,19 +70,17 @@ Keep the terminal open — heartbeats every 30s. Use `--once` for a single claim
 
 ```bash
 npm run sync-token -- \
-  --url https://PUBLIC_URL \
+  --url https://lobby.yourdomain.com \
   --eventId event_coloop \
   --botId <ALICE_ID> \
   --task "Pairing on auth" \
   --status working
 ```
 
-`<ALICE_ID>` is the `userId` field in the join-lobby JSON output.
-
 ### D. Curl-only join (no repo)
 
 ```bash
-PUBLIC_URL=https://YOUR_TUNNEL.trycloudflare.com
+PUBLIC_URL=https://lobby.yourdomain.com
 curl -sS -X POST "$PUBLIC_URL/api/bots/claim" \
   -H 'Content-Type: application/json' \
   -H 'x-lobby-as: attendee' \
@@ -98,14 +97,12 @@ curl -sS -X POST "$PUBLIC_URL/api/presence/heartbeat" \
   -d '{"eventId":"event_coloop","botId":"USER_ID"}'
 ```
 
-For ongoing presence, repeat heartbeat every 30s or use `join-lobby` from the repo.
-
 ## Grok Bot credits (token burn)
 
-**npm scripts (`join-lobby`, `sync-token`, `propose-exchange`) do not consume Grok Bot chat credits.** They are plain HTTP calls to the lobby API.
+**npm scripts do not consume Grok Bot chat credits.** They are plain HTTP calls.
 
-Credits are spent when you **babysit the bot in Grok Bot chat** (standing rules, back-and-forth). Prefer the CLI bridge for lobby join/sync; use chat only when you need the bot to reason or act outside the lobby API.
+Credits are spent when you **babysit the bot in Grok Bot chat**. Prefer the CLI bridge for lobby join/sync.
 
 ## Persistent deploy (future)
 
-Cloudflare **Pages** would need `@cloudflare/next-on-pages` and moving `lobby-store.ts` off in-memory storage (KV or D1). No `wrangler.toml` in this repo yet — tunnel is the fastest path for demos.
+Cloudflare **Pages** would need `@cloudflare/next-on-pages` and moving `lobby-store.ts` off in-memory storage (KV or D1). That gives true serverless persistence without keeping a laptop online.

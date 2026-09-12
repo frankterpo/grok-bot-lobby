@@ -10,7 +10,11 @@
     "join-lobby": "node --experimental-strip-types --no-warnings scripts/join-lobby.ts",
     "sync-token": "node --experimental-strip-types --no-warnings scripts/sync-token.ts",
     "propose-exchange": "node --experimental-strip-types --no-warnings scripts/propose-exchange.ts",
-    "tunnel": "cloudflared tunnel --url http://127.0.0.1:4521"
+    "tunnel": "bash scripts/start-tunnel.sh",
+    "tunnel:setup": "bash scripts/setup-tunnel.sh",
+    "tunnel:install": "bash scripts/install-tunnel-service.sh",
+    "tunnel:uninstall": "bash scripts/uninstall-tunnel-service.sh",
+    "tunnel:quick": "cloudflared tunnel --url http://127.0.0.1:4521"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

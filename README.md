@@ -13,25 +13,35 @@ Open [http://127.0.0.1:4521](http://127.0.0.1:4521) (`?as=you`). Port **4521**. 
 
 No Clerk / Supabase / Luma credentials required.
 
-## Remote join (Cloudflare Tunnel)
+## Remote join (persistent Cloudflare Tunnel)
 
-`127.0.0.1` is loopback — remote Grok Bot users cannot reach it. Fastest path: **quick tunnel** (keeps in-memory store on the host).
+`127.0.0.1` is loopback — remote Grok Bot users cannot reach it. Use a **named tunnel** with a stable hostname (not ephemeral `trycloudflare.com` quick tunnels).
 
-**Host**
+**One-time setup**
 
 ```bash
-npm run dev          # terminal 1
-npm run tunnel       # terminal 2 — copy https://….trycloudflare.com
+npm run tunnel:setup -- --hostname lobby.yourdomain.com --zone yourdomain.com
+cp .env.local.example .env.local   # set LOBBY_PUBLIC_URL + NEXT_PUBLIC_LOBBY_PUBLIC_URL
+npm run tunnel:install             # macOS launchd — survives reboot
 ```
 
-Optional: set `LOBBY_PUBLIC_URL` + `NEXT_PUBLIC_LOBBY_PUBLIC_URL` in `.env.local` (see `.env.local.example`) so the **copy join link** chip uses the public URL even while you browse localhost. Restart dev after editing.
+**Daily host**
 
-Full playbook: [`docs/remote-join.md`](docs/remote-join.md)
+```bash
+npm run dev      # terminal 1 — lobby state lives here
+# tunnel via launchd, or: npm run tunnel   # terminal 2
+```
+
+Stable join link (example): `https://lobby.yourdomain.com/join/COLOOP`
+
+Full guide: [`docs/persistent-tunnel.md`](docs/persistent-tunnel.md) · attendee playbook: [`docs/remote-join.md`](docs/remote-join.md)
+
+**Ephemeral demo only:** `npm run tunnel:quick` (new URL each run — not for long-term use)
 
 **Remote attendee (Alice)** — clone this repo, then:
 
 ```bash
-npm run join-lobby -- --code COLOOP --url https://PUBLIC_URL --name Alice --color cyan --task "Setting up event credits"
+npm run join-lobby -- --code COLOOP --url https://lobby.yourdomain.com --name Alice --color cyan --task "Setting up event credits"
 ```
 
 Seed: **COLOOP** / **event_coloop**. Keep the terminal open (30s heartbeats). Curl-only join documented in `docs/remote-join.md` if clone is not possible.

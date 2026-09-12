@@ -1,0 +1,18 @@
+# Named Cloudflare Tunnel — grok-bot-lobby
+#
+# Generate this file once:
+#   npm run tunnel:setup
+#
+# Or copy manually after:
+#   cloudflared tunnel login
+#   cloudflared tunnel create grok-bot-lobby
+#   cloudflared tunnel route dns grok-bot-lobby lobby.YOUR_ZONE
+
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: /Users/YOU/.cloudflared/REPLACE_WITH_TUNNEL_UUID.json
+
+ingress:
+  # Stable public hostname (custom domain on your Cloudflare zone)
+  - hostname: lobby.example.com
+    service: http://127.0.0.1:4521
+  - service: http_status:404

@@ -4,33 +4,44 @@
 
 | Option | Time | Verdict |
 | --- | --- | --- |
-| **A — Cloudflare quick tunnel** | Minutes | **Selected** — dev server + in-memory store unchanged |
-| B — Cloudflare Pages | Hours+ | Blocked: no `wrangler.toml`, in-memory `lobby-store.ts` needs KV/D1 + `@cloudflare/next-on-pages` |
-| C — Hybrid | — | Tunnel now; Pages scaffold deferred |
+| **A — Named Cloudflare tunnel** | One-time setup | **Selected** — stable hostname, launchd persistence |
+| B — Cloudflare quick tunnel | Minutes | Ephemeral only — `npm run tunnel:quick` for demos |
+| C — Cloudflare Pages | Hours+ | Future — needs KV/D1 + `@cloudflare/next-on-pages` |
 
-## Live tunnel (2026-09-12)
+## Implementation (2026-09-12)
 
-- Command: `npm run tunnel` → `cloudflared tunnel --url http://127.0.0.1:4521`
-- Public URL: `https://pairs-forums-stronger-onto.trycloudflare.com`
-- Join: `https://pairs-forums-stronger-onto.trycloudflare.com/join/COLOOP`
-- Seed verified: code **COLOOP**, eventId **event_coloop**
+### Named tunnel scaffold
 
-## Code changes
+- `cloudflared/config.yml.example` — template
+- `scripts/setup-tunnel.sh` — `cloudflared tunnel login/create/route dns`, writes config
+- `scripts/start-tunnel.sh` — `npm run tunnel` (named, not quick)
+- `scripts/install-tunnel-service.sh` — macOS LaunchAgent
+- `docs/persistent-tunnel.md` — full operator guide
 
-- `src/lib/format.ts` — `originFromRequest` uses `LOBBY_PUBLIC_URL`, then `Host` / `X-Forwarded-Host` (fixes tunnel join URLs)
-- `next.config.ts` — `allowedDevOrigins` includes `*.trycloudflare.com`
-- `package.json` — `npm run tunnel`
-- `.env.local.example`, `docs/remote-join.md`, README remote section
+### App config (from prior quick-tunnel work)
 
-## Host must keep running
+- `src/lib/format.ts` — `LOBBY_PUBLIC_URL` / forwarded host for join URLs
+- `next.config.ts` — `allowedDevOrigins` includes tunnel hostname from env
+- `.env.local.example` — stable URL vars
 
-Quick tunnel + dev server. Tunnel URL changes each run unless a named tunnel + DNS is configured in Cloudflare Zero Trust.
+### Activation blocked on this machine
 
-## Verification
+`~/.cloudflared/` is empty — `cloudflared tunnel login` required on host. User runs:
 
 ```bash
-curl -sS 'https://pairs-forums-stronger-onto.trycloudflare.com/api/lobby/snapshot?code=COLOOP' -H 'x-lobby-as: you' | jq -r .joinUrl
-# → https://pairs-forums-stronger-onto.trycloudflare.com/join/COLOOP
+npm run tunnel:setup -- --hostname lobby.<zone> --zone <zone>
+```
 
-npm run join-lobby -- --code COLOOP --url https://pairs-forums-stronger-onto.trycloudflare.com --name RemoteTest --color cyan --once
+### Host must keep running
+
+Named tunnel + dev server. Launchd keeps tunnel alive; `npm run dev` required for in-memory lobby. Pages deploy = future true serverless path.
+
+## Copy-paste for remote joiner (after setup)
+
+```
+Join lobby COLOOP at https://lobby.yourdomain.com/join/COLOOP
+```
+
+```bash
+npm run join-lobby -- --code COLOOP --url https://lobby.yourdomain.com --name RemoteTest --color cyan --once
 ```

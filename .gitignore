@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.local.example
 
+# Named tunnel — machine-specific (credentials live in ~/.cloudflared/)
+/cloudflared/config.yml
+
 # vercel
 .vercel
 
