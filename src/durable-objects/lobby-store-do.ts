@@ -83,7 +83,7 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
       case "markShareCopied":
         return lobby.markShareCopied(payload.actor as Actor, payload.eventId as string);
       case "claim":
-        return lobby.claim(
+        return await lobby.claim(
           payload.actor as Actor,
           payload.input as Parameters<LobbyMemory["claim"]>[1],
           payload.origin as string,
@@ -129,12 +129,6 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
           },
           payload.eventId as string,
         );
-      case "updateProfile":
-        return lobby.updateProfile(
-          payload.actor as Actor,
-          payload.eventId as string,
-          payload.profile as Parameters<LobbyMemory["updateProfile"]>[2],
-        );
       case "getStored":
         return lobby.getStored(payload.eventId as string);
       case "getByCode":
@@ -149,9 +143,24 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
           },
           payload.stored as Parameters<LobbyMemory["actor"]>[1],
         );
+      case "updateProfile":
+        return await lobby.updateProfile(
+          payload.actor as Actor,
+          payload.input as Parameters<LobbyMemory["updateProfile"]>[1],
+        );
       case "checkClaimRateLimit": {
         const ip = payload.ip as string;
-        const allowed = await this.checkRateLimit(`claim:${ip}`, 20, 60_000);
+        const allowed = await this.checkRateLimit(`claim:${ip}`, 60, 60_000);
+        return { allowed };
+      }
+      case "checkSyncRateLimit": {
+        const botId = payload.botId as string;
+        const allowed = await this.checkRateLimit(`sync:${botId}`, 120, 60_000);
+        return { allowed };
+      }
+      case "checkHeartbeatRateLimit": {
+        const botId = payload.botId as string;
+        const allowed = await this.checkRateLimit(`heartbeat:${botId}`, 120, 60_000);
         return { allowed };
       }
       case "checkCreateEventRateLimit": {

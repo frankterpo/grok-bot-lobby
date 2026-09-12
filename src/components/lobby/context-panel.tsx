@@ -546,12 +546,12 @@ function ProfileBlock({ profile, handle }: { profile: LumaProfile | null; handle
     <div className="px-3 py-3">
       <p className="micro text-white/40">Profile</p>
       <p className="mt-2 text-[12px] leading-relaxed text-white/65">
-        {profile?.bio ?? "No profile bio on this bot yet."}
+        {profile?.bio ?? profile?.githubBio ?? "No public profile cached yet."}
       </p>
       <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/40">
-        {handle ? <span>luma/@{handle}</span> : null}
+        {handle || profile?.lumaHandle ? <span>luma/@{handle ?? profile?.lumaHandle}</span> : null}
         {profile?.githubHandle ? <span>gh/{profile.githubHandle}</span> : null}
-        {profile?.originUsername ? <span>origin/{profile.originUsername}</span> : null}
+        {profile?.originHandle ? <span>origin/{profile.originHandle}</span> : null}
         {profile?.twitter ? <span>x/{profile.twitter}</span> : null}
         {profile?.linkedin ? <span>in/{profile.linkedin}</span> : null}
       </div>

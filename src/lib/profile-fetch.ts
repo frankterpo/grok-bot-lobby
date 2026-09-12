@@ -1,100 +1,137 @@
-import type { BotProfile } from "@/lib/domain";
+import type { LumaProfile } from "@/lib/domain";
 
-export type ProfileInput = {
-  lumaHandle?: string;
+export type ProfileInputs = {
   lumaProfileUrl?: string;
+  lumaHandle?: string;
+  githubProfileUrl?: string;
   githubHandle?: string;
-  originUsername?: string;
+  originProfileUrl?: string;
+  originHandle?: string;
 };
 
-type GitHubUser = {
-  login?: string;
-  name?: string;
-  bio?: string | null;
-  avatar_url?: string;
-  twitter_username?: string | null;
+type CacheEntry = {
+  profile: LumaProfile;
+  fetchedAt: number;
 };
 
-function normalizeHandle(value: string | undefined): string | undefined {
-  const trimmed = value?.trim().replace(/^@/, "");
-  return trimmed || undefined;
+const CACHE_TTL_MS = 15 * 60 * 1000;
+const cache = new Map<string, CacheEntry>();
+
+function cacheKey(userId: string): string {
+  return userId;
 }
 
-function lumaHandleFromUrl(url: string): string | undefined {
+function parseGithubHandle(urlOrHandle: string): string | null {
+  const trimmed = urlOrHandle.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (!trimmed.includes("/")) {
+    return trimmed.replace(/^@/, "");
+  }
   try {
-    const parsed = new URL(url);
-    const parts = parsed.pathname.split("/").filter(Boolean);
-    if (parts[0] === "u" && parts[1]) {
+    const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts[0] === "users" && parts[1]) {
       return parts[1];
     }
+    return parts[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function parseOriginHandle(urlOrHandle: string): string | null {
+  const trimmed = urlOrHandle.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (!trimmed.includes("/")) {
+    return trimmed.replace(/^@/, "");
+  }
+  try {
+    const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+    const parts = url.pathname.split("/").filter(Boolean);
+    return parts[parts.length - 1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function parseLumaHandle(urlOrHandle: string): string | null {
+  const trimmed = urlOrHandle.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (!trimmed.includes("/")) {
+    return trimmed.replace(/^@/, "");
+  }
+  try {
+    const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+    const parts = url.pathname.split("/").filter(Boolean);
+    const userIdx = parts.indexOf("user");
+    if (userIdx >= 0 && parts[userIdx + 1]) {
+      return parts[userIdx + 1];
+    }
+    return parts[parts.length - 1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchGithubBio(handle: string): Promise<string | undefined> {
+  try {
+    const response = await fetch(`https://api.github.com/users/${encodeURIComponent(handle)}`, {
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "grok-bot-lobby" },
+    });
+    if (!response.ok) {
+      return undefined;
+    }
+    const json = (await response.json()) as { bio?: string | null; name?: string | null };
+    return json.bio?.trim() || json.name?.trim() || undefined;
   } catch {
     return undefined;
   }
-  return undefined;
 }
 
-async function fetchGitHub(handle: string): Promise<Partial<BotProfile>> {
-  const response = await fetch(`https://api.github.com/users/${encodeURIComponent(handle)}`, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "grok-bot-lobby" },
-  });
-  if (!response.ok) {
-    return { githubHandle: handle };
-  }
-  const user = (await response.json()) as GitHubUser;
-  return {
-    githubHandle: user.login ?? handle,
-    bio: user.bio ?? undefined,
-    avatarUrl: user.avatar_url,
-    twitter: user.twitter_username ?? undefined,
-  };
-}
-
-/** Fetch and merge public profile fields (best-effort; caches caller-side). */
-export async function fetchPublicProfile(
+export async function resolvePublicProfile(
   userId: string,
-  input: ProfileInput,
-  existing?: BotProfile | null,
-): Promise<BotProfile> {
-  const lumaHandle = normalizeHandle(input.lumaHandle) ?? lumaHandleFromUrl(input.lumaProfileUrl ?? "");
-  const githubHandle = normalizeHandle(input.githubHandle);
-  const originUsername = normalizeHandle(input.originUsername);
-  const lumaProfileUrl = input.lumaProfileUrl?.trim() || undefined;
+  inputs: ProfileInputs,
+): Promise<LumaProfile> {
+  const key = cacheKey(userId);
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    return cached.profile;
+  }
 
-  const base: BotProfile = {
+  const lumaHandle = inputs.lumaHandle ?? parseLumaHandle(inputs.lumaProfileUrl ?? "") ?? undefined;
+  const githubHandle = inputs.githubHandle ?? parseGithubHandle(inputs.githubProfileUrl ?? "") ?? undefined;
+  const originHandle = inputs.originHandle ?? parseOriginHandle(inputs.originProfileUrl ?? "") ?? undefined;
+
+  const githubBio = githubHandle ? await fetchGithubBio(githubHandle) : undefined;
+  const bioParts = [
+    lumaHandle ? `Luma @${lumaHandle}` : null,
+    githubHandle ? `GitHub @${githubHandle}` : null,
+    originHandle ? `Origin @${originHandle}` : null,
+    githubBio,
+  ].filter(Boolean);
+
+  const profile: LumaProfile = {
     userId,
-    bio: existing?.bio,
-    twitter: existing?.twitter,
-    linkedin: existing?.linkedin,
-    lumaHandle: lumaHandle ?? existing?.lumaHandle,
-    lumaProfileUrl: lumaProfileUrl ?? existing?.lumaProfileUrl,
-    githubHandle: githubHandle ?? existing?.githubHandle,
-    originUsername: originUsername ?? existing?.originUsername,
-    avatarUrl: existing?.avatarUrl,
-    pastEvents: existing?.pastEvents ?? [],
-    fetchedAt: new Date().toISOString(),
+    bio: bioParts.length > 0 ? bioParts.join(" · ") : undefined,
+    twitter: undefined,
+    linkedin: undefined,
+    pastEvents: [],
+    githubHandle,
+    originHandle,
+    githubBio,
+    lumaHandle,
   };
 
-  if (githubHandle) {
-    try {
-      const gh = await fetchGitHub(githubHandle);
-      Object.assign(base, {
-        githubHandle: gh.githubHandle ?? githubHandle,
-        bio: gh.bio ?? base.bio,
-        avatarUrl: gh.avatarUrl ?? base.avatarUrl,
-        twitter: gh.twitter ?? base.twitter,
-      });
-    } catch {
-      base.githubHandle = githubHandle;
-    }
-  }
+  cache.set(key, { profile, fetchedAt: Date.now() });
+  return profile;
+}
 
-  if (originUsername && !base.bio) {
-    base.bio = `Origin: @${originUsername}`;
-  }
-
-  if (lumaHandle && !base.bio) {
-    base.bio = `Luma: @${lumaHandle}`;
-  }
-
-  return base;
+export function invalidateProfileCache(userId: string): void {
+  cache.delete(cacheKey(userId));
 }

@@ -2,10 +2,10 @@ import {
   isShareLevel,
   isTokenStatus,
   parseBotColor,
-  TASK_LABEL_MAX,
   type ShareLevel,
   type TokenStatus,
 } from "@/lib/domain";
+import { truncateTaskLabel } from "@/lib/token-utils";
 import { asBoolean, asString, isRecord } from "@/lib/http";
 
 export type ClaimBody = {
@@ -15,18 +15,38 @@ export type ClaimBody = {
   shareLevel: ShareLevel;
   hasGrokBot: boolean;
   acceptPermissions: boolean;
-  lumaHandle?: string;
   lumaProfileUrl?: string;
+  lumaHandle?: string;
+  githubProfileUrl?: string;
   githubHandle?: string;
-  originUsername?: string;
+  originProfileUrl?: string;
+  originHandle?: string;
 };
 
 export type ProfileBody = {
   eventId: string;
-  lumaHandle?: string;
+  botId: string;
   lumaProfileUrl?: string;
+  lumaHandle?: string;
+  githubProfileUrl?: string;
   githubHandle?: string;
-  originUsername?: string;
+  originProfileUrl?: string;
+  originHandle?: string;
+};
+
+export type EnrichBody = ProfileInputs & {
+  userId?: string;
+  eventId?: string;
+  botId?: string;
+};
+
+type ProfileInputs = {
+  lumaProfileUrl?: string;
+  lumaHandle?: string;
+  githubProfileUrl?: string;
+  githubHandle?: string;
+  originProfileUrl?: string;
+  originHandle?: string;
 };
 
 export type SyncBody = {
@@ -109,10 +129,36 @@ export function parseClaimBody(value: unknown): ClaimBody | null {
     shareLevel: shareLevelRaw,
     hasGrokBot,
     acceptPermissions,
-    lumaHandle: asString(value.lumaHandle) ?? undefined,
     lumaProfileUrl: asString(value.lumaProfileUrl) ?? undefined,
+    lumaHandle: asString(value.lumaHandle) ?? undefined,
+    githubProfileUrl: asString(value.githubProfileUrl) ?? undefined,
     githubHandle: asString(value.githubHandle) ?? undefined,
-    originUsername: asString(value.originUsername) ?? undefined,
+    originProfileUrl: asString(value.originProfileUrl) ?? undefined,
+    originHandle: asString(value.originHandle) ?? undefined,
+  };
+}
+
+export function parseEnrichBody(value: unknown): EnrichBody | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const inputs = {
+    lumaProfileUrl: asString(value.lumaProfileUrl) ?? undefined,
+    lumaHandle: asString(value.lumaHandle) ?? undefined,
+    githubProfileUrl: asString(value.githubProfileUrl) ?? undefined,
+    githubHandle: asString(value.githubHandle) ?? undefined,
+    originProfileUrl: asString(value.originProfileUrl) ?? undefined,
+    originHandle: asString(value.originHandle) ?? undefined,
+  };
+  const hasInput = Object.values(inputs).some(Boolean);
+  if (!hasInput) {
+    return null;
+  }
+  return {
+    ...inputs,
+    userId: asString(value.userId) ?? undefined,
+    eventId: asString(value.eventId) ?? undefined,
+    botId: asString(value.botId) ?? undefined,
   };
 }
 
@@ -121,15 +167,19 @@ export function parseProfileBody(value: unknown): ProfileBody | null {
     return null;
   }
   const eventId = asString(value.eventId);
-  if (!eventId) {
+  const botId = asString(value.botId);
+  if (!eventId || !botId) {
     return null;
   }
   return {
     eventId,
-    lumaHandle: asString(value.lumaHandle) ?? undefined,
+    botId,
     lumaProfileUrl: asString(value.lumaProfileUrl) ?? undefined,
+    lumaHandle: asString(value.lumaHandle) ?? undefined,
+    githubProfileUrl: asString(value.githubProfileUrl) ?? undefined,
     githubHandle: asString(value.githubHandle) ?? undefined,
-    originUsername: asString(value.originUsername) ?? undefined,
+    originProfileUrl: asString(value.originProfileUrl) ?? undefined,
+    originHandle: asString(value.originHandle) ?? undefined,
   };
 }
 
@@ -139,14 +189,15 @@ export function parseSyncBody(value: unknown): SyncBody | null {
   }
   const eventId = asString(value.eventId);
   const botId = asString(value.botId);
-  const taskLabel = asString(value.taskLabel);
+  const taskLabelRaw = asString(value.taskLabel);
   const statusRaw = asString(value.status);
   const focus = asString(value.focus) ?? undefined;
   const shareRaw = asString(value.shareLevel);
-  if (!eventId || !botId || !taskLabel || !statusRaw || !isTokenStatus(statusRaw)) {
+  if (!eventId || !botId || !taskLabelRaw || !statusRaw || !isTokenStatus(statusRaw)) {
     return null;
   }
-  if (taskLabel.length > TASK_LABEL_MAX) {
+  const taskLabel = truncateTaskLabel(taskLabelRaw);
+  if (!taskLabel) {
     return null;
   }
   if (shareRaw && !isShareLevel(shareRaw)) {

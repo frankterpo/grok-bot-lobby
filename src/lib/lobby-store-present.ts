@@ -5,7 +5,7 @@ import {
   type LobbyToken,
   assertNever,
 } from "@/lib/domain";
-import { clone } from "@/lib/lobby-store-helpers";
+import { clone, hydrateSquads } from "@/lib/lobby-store-helpers";
 import type { StoredEvent } from "@/lib/seed";
 import { canViewFullToken, roleForEvent } from "@/lib/policy";
 
@@ -17,6 +17,7 @@ export function presentAttendee(attendee: Attendee, currentUserId: string | null
 }
 
 export function presentEvent(stored: StoredEvent, currentUserId: string | null): Event {
+  hydrateSquads(stored);
   return {
     id: stored.id,
     name: stored.name,

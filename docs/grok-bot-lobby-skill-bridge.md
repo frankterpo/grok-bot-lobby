@@ -1,57 +1,47 @@
 # Grok Bot Lobby ↔ grok-bot-skill bridge
 
-Connects the [grok-bot-skill](https://github.com/adamanz/grok-bot-skill) CLI (local Grok Bot teammates) with the Grok Bot Lobby HTTP API.
+Maps [adamanz/grok-bot-skill](https://github.com/adamanz/grok-bot-skill) to the lobby Tier B API.
 
-## Install grok-bot-skill
-
-```bash
-npx skills add adamanz/grok-bot-skill -g -a cursor
-```
-
-Skill path (typical): `~/.cursor/skills/grok-bot/scripts/grokbot.py`
-
-### grok-bot-skill capabilities
+## grok-bot-skill capabilities (v1.0)
 
 | Command | Purpose |
-|---------|---------|
+| --- | --- |
 | `status` | Sign-in + cloud computer health |
-| `list` | All Grok Bot teammates (id, name, title, running state) |
-| `create` | New teammate with standing rules in `--description` |
-| `chat` / `send` | Message a bot (wait vs fire-and-forget) |
-| `transcript` | Full conversation entries (Tier B — no privacy tiers) |
+| `list` | List Grok Bots on this Mac |
+| `create` | Spin up a new bot (`--name`, `--title`, `--description`) |
 | `update` | Edit bot profile |
+| `send` | Fire-and-forget message |
+| `chat` | Send and wait for reply |
+| `transcript` | Read conversation entries (full text — **not** shared to lobby) |
 
-The skill talks to the Grok Bot gateway locally. It does **not** join the lobby by itself.
+Lobby never receives transcript/workspace. Only task tokens + public profile links.
 
-## Lobby bridge CLI
+## Lobby bridge scripts
 
-From this repo:
+Run from this repo:
 
 ```bash
-npm run lobby-bridge -- list-bots --url URL --eventId EVENT_ID
-npm run lobby-bridge -- context-from-bot --url URL --eventId EVENT_ID --botId BOT_ID
-npm run lobby-bridge -- standing-rules
-npm run lobby-bridge -- transcribe-hook --name Reed --limit 5
+npm run list-bots              # wraps grokbot.py list
+npm run standing-rules         # stdout for grokbot.py create --description
+npm run context-from-bot -- --url URL --eventId ID --botId ID
+npm run transcribe-hook -- --name Reed --limit 5   # suggest task label from transcript
+npm run join-lobby -- --code CODE --url URL --name Alice --task "..."
+npm run sync-token -- --url URL --eventId ID --botId ID --task "..." --status working
+npm run load-test-45 -- --url URL --code CODE
 ```
 
-| Subcommand | Maps to |
-|------------|---------|
-| `list-bots` | `GET /api/lobby/snapshot` → attendee grid + tokens |
-| `context-from-bot` | `GET /api/bots/context` → profile, token, presence, exchanges |
-| `standing-rules` | `docs/grok-bot-standing-rules.md` (paste into `grokbot.py create --description`) |
-| `transcribe-hook` | Tier B: `grokbot.py transcript` → suggested 80-char task label for `/api/lobby/sync` |
+## Typical flow
 
-## Typical agent flow
+1. Host creates event at `/host`, shares code + URL.
+2. `npm run standing-rules | grokbot.py create --name Reed --title "Lobby" --description "$(cat)"`
+3. User tells bot: *Join lobby CODE at URL*
+4. Bot runs `join-lobby` (claim → sync → 60s heartbeat).
+5. Optional: `context-from-bot` for detail panel data; `transcribe-hook` to draft a task label from Grok transcript.
 
-1. `npm run lobby-bridge -- standing-rules` → create Grok Bot with lobby permissions.
-2. Host creates event; guest runs `npm run join-lobby -- --code CODE --url URL --name … --task "…"`.
-3. `list-bots` / `context-from-bot` for situational awareness without scraping the UI.
-4. Optional: `transcribe-hook` to derive a task label from Grok Bot conversation (agent summarizes; never paste full transcript to the lobby).
+## Share levels (lobby tokens)
 
-## Share levels (lobby only)
+- `label` — task name only
+- `label+status` — task + working/done/waiting/idle (default)
+- `full` — task + status + focus line
 
-Lobby tokens respect `label` / `label+status` / `full`. grok-bot-skill `transcript` always returns full text — enforce privacy in the agent, not the skill CLI. See `internal/share-levels-audit.md`.
-
-## Heartbeat
-
-Default **60s** (`HEARTBEAT_MS` in `src/lib/domain.ts`). join-lobby and standing rules match.
+See `internal/share-levels-audit.md` for privacy boundaries vs grok-bot-skill `transcript`.

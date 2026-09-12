@@ -16,7 +16,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const ip = clientIp(request);
     const durableLimit = await lobbyDispatch<{ allowed: boolean }>("checkClaimRateLimit", { ip });
-    if (!durableLimit.allowed || !rateLimit(`claim:${ip}`, 20, 60_000)) {
+    if (!durableLimit.allowed || !rateLimit(`claim:${ip}`, 60, 60_000)) {
       return jsonError("Too many join attempts. Wait a minute and try again.", 429);
     }
 

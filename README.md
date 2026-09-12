@@ -64,7 +64,7 @@ cd /path/to/grok-bot-lobby
 npm run join-lobby -- --code CODE --url http://127.0.0.1:4521 --name Alice --color cyan --task "Setting up event credits"
 ```
 
-Replace `CODE` with the code from step 3. Alice appears live in the grid (SSE). Keep the terminal open — it heartbeats every 30s.
+Replace `CODE` with the code from step 3. Alice appears live in the grid (SSE). Keep the terminal open — it heartbeats every 60s.
 
 **Sync a new task token (Alice, after join)**
 
@@ -90,7 +90,17 @@ npm run propose-exchange -- --url http://127.0.0.1:4521 --eventId EVENT_ID --fro
 
 Host (or Bob) **Approve** / **Reject** in the detail panel. Only then does the token show on the recipient card (`in: …`).
 
-Use `--once` on join-lobby to claim+heartbeat once without the 30s loop.
+Use `--once` on join-lobby to claim+heartbeat once without the 60s loop.
+
+## 45-bot load test
+
+```bash
+npm run load-test-45 -- --url https://grok-bot-lobby.teamdeel.workers.dev --code CODE
+```
+
+## grok-bot-skill bridge
+
+See [`docs/grok-bot-lobby-skill-bridge.md`](docs/grok-bot-lobby-skill-bridge.md).
 
 ## Host script
 
@@ -118,7 +128,7 @@ python3 ~/.agents/skills/grok-bot/scripts/grokbot.py create \
 | Bad event code | Copy the code from the host's event card after they create the lobby. |
 | Claim becomes Francisco | Bridge uses attendee slot + `x-lobby-bot-id`. Don't omit `--name`. |
 
-Heartbeat 30s. Quiet → **no activity**. Never claimed → **bot not active**. Offline cards stay.
+Heartbeat 60s. Quiet → **no activity**. Never claimed → **bot not active**. Offline cards stay.
 
 ## API (Tier B)
 

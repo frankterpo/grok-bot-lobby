@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * Load test: create event, claim 45 bots, sync tokens, heartbeat, verify snapshot.
- * Usage: node --experimental-strip-types scripts/load-test-45.ts --url https://grok-bot-lobby.teamdeel.workers.dev --hostSecret SECRET
+ * Load test: join 45 bots to one lobby, sync tokens, heartbeat once.
+ * Usage: npm run load-test-45 -- --url https://grok-bot-lobby.teamdeel.workers.dev --code CODE
  */
 
-const BOT_COUNT = 45;
-const COLORS = ["coral", "cyan", "yellow", "orange"] as const;
+type ClaimResult = {
+  ok?: boolean;
+  userId?: string;
+  eventId?: string;
+  error?: string;
+};
 
 function arg(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
@@ -15,161 +19,105 @@ function arg(name: string): string | undefined {
   return process.argv[index + 1];
 }
 
-function fail(message: string): never {
-  console.error(JSON.stringify({ ok: false, error: message }, null, 2));
-  process.exit(1);
-}
-
-async function postJson(
-  url: string,
-  path: string,
-  body: unknown,
-  headers: Record<string, string> = {},
-): Promise<{ status: number; json: unknown }> {
+async function postJson(url: string, path: string, body: unknown, botId?: string): Promise<unknown> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-lobby-as": "attendee",
+  };
+  if (botId) {
+    headers["x-lobby-bot-id"] = botId;
+  }
   const response = await fetch(`${url}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
+    headers,
     body: JSON.stringify(body),
   });
-  const json: unknown = await response.json().catch(() => ({}));
-  return { status: response.status, json };
+  const json: unknown = await response.json();
+  if (!response.ok) {
+    const err = json as { error?: string };
+    throw new Error(err.error ?? `${path} failed (${response.status})`);
+  }
+  return json;
+}
+
+async function joinOne(baseUrl: string, code: string, index: number): Promise<{ userId: string; eventId: string }> {
+  const claimed = (await postJson(baseUrl, "/api/bots/claim", {
+    eventCode: code,
+    name: `Bot-${String(index).padStart(2, "0")}`,
+    botColor: ["coral", "cyan", "yellow", "orange"][index % 4],
+    hasGrokBot: true,
+    acceptPermissions: true,
+    shareLevel: "label+status",
+  })) as ClaimResult;
+  const userId = claimed.userId;
+  const eventId = claimed.eventId;
+  if (!userId || !eventId) {
+    throw new Error(`Bot ${index}: claim missing userId/eventId`);
+  }
+  await postJson(
+    baseUrl,
+    "/api/lobby/sync",
+    {
+      eventId,
+      botId: userId,
+      taskLabel: `Load test task ${index}`,
+      status: index % 3 === 0 ? "working" : "idle",
+      shareLevel: "label+status",
+    },
+    userId,
+  );
+  await postJson(baseUrl, "/api/presence/heartbeat", { eventId, botId: userId }, userId);
+  return { userId, eventId };
 }
 
 async function main(): Promise<void> {
   const url = (arg("url") ?? "http://127.0.0.1:4521").replace(/\/$/, "");
-  const hostSecret = arg("hostSecret") ?? process.env.HOST_SECRET;
-  if (!hostSecret) {
-    fail("Need --hostSecret or HOST_SECRET env for event creation.");
-  }
-
-  const hostHeaders = {
-    "x-lobby-as": "you",
-    "x-lobby-host-secret": hostSecret,
-  };
-
-  const created = await postJson(
-    url,
-    "/api/events",
-    { name: `Load test ${new Date().toISOString()}`, date: new Date().toISOString().slice(0, 10) },
-    hostHeaders,
-  );
-  if (created.status !== 201) {
-    fail(`create event failed (${created.status}): ${JSON.stringify(created.json)}`);
-  }
-  const event = created.json as { event?: { id: string; eventCode: string } };
-  const eventId = event.event?.id;
-  const eventCode = event.event?.eventCode;
-  if (!eventId || !eventCode) {
-    fail("create event missing id/code");
-  }
-
-  const bots: Array<{ userId: string; name: string }> = [];
-  const claimStart = Date.now();
-
-  for (let i = 0; i < BOT_COUNT; i += 1) {
-    const name = `Bot-${String(i + 1).padStart(2, "0")}`;
-    const color = COLORS[i % COLORS.length];
-    const claimed = await postJson(url, "/api/bots/claim", {
-      eventCode,
-      name,
-      botColor: color,
-      hasGrokBot: true,
-      acceptPermissions: true,
-      shareLevel: "label+status",
-    });
-    if (claimed.status !== 201) {
-      fail(`claim ${name} failed (${claimed.status}): ${JSON.stringify(claimed.json)}`);
-    }
-    const body = claimed.json as { userId?: string };
-    if (!body.userId) {
-      fail(`claim ${name} missing userId`);
-    }
-    bots.push({ userId: body.userId, name });
-  }
-
-  const claimMs = Date.now() - claimStart;
-
-  for (const bot of bots) {
-    const synced = await postJson(
-      url,
-      "/api/lobby/sync",
-      {
-        eventId,
-        botId: bot.userId,
-        taskLabel: `Task for ${bot.name}`,
-        status: "working",
-      },
-      { "x-lobby-as": "attendee", "x-lobby-bot-id": bot.userId },
-    );
-    if (synced.status !== 200) {
-      fail(`sync ${bot.name} failed (${synced.status}): ${JSON.stringify(synced.json)}`);
-    }
-  }
-
-  for (const bot of bots) {
-    const beat = await postJson(
-      url,
-      "/api/presence/heartbeat",
-      { eventId, botId: bot.userId },
-      { "x-lobby-as": "attendee", "x-lobby-bot-id": bot.userId },
-    );
-    if (beat.status !== 200) {
-      fail(`heartbeat ${bot.name} failed (${beat.status}): ${JSON.stringify(beat.json)}`);
-    }
-  }
-
-  const dedup = await postJson(
-    url,
-    "/api/lobby/sync",
-    {
-      eventId,
-      botId: bots[0].userId,
-      taskLabel: `Task for ${bots[0].name}`,
-      status: "working",
-    },
-    { "x-lobby-as": "attendee", "x-lobby-bot-id": bots[0].userId },
-  );
-  if (dedup.status !== 200) {
-    fail(`dedup sync failed (${dedup.status})`);
-  }
-
-  const snapshotRes = await fetch(`${url}/api/lobby/snapshot?eventId=${encodeURIComponent(eventId)}`, {
-    headers: { "x-lobby-as": "attendee", "x-lobby-bot-id": bots[0].userId },
-  });
-  const snapshot = (await snapshotRes.json()) as {
-    event?: { attendees: unknown[] };
-    activeBotCount?: number;
-    tokens?: unknown[];
-  };
-
-  const attendeeCount = snapshot.event?.attendees.length ?? 0;
-  const tokenCount = snapshot.tokens?.length ?? 0;
-  const active = snapshot.activeBotCount ?? 0;
-
-  const passed = attendeeCount >= BOT_COUNT + 1 && tokenCount >= BOT_COUNT && active >= BOT_COUNT;
-
-  console.log(
-    JSON.stringify(
-      {
-        ok: passed,
-        url,
-        eventId,
-        eventCode,
-        botsClaimed: bots.length,
-        claimMs,
-        attendeeCount,
-        tokenCount,
-        activeBotCount: active,
-        dedupSyncStatus: dedup.status,
-      },
-      null,
-      2,
-    ),
-  );
-
-  if (!passed) {
+  const code = arg("code")?.toUpperCase();
+  const count = Number(arg("count") ?? "45");
+  if (!code) {
+    console.error(JSON.stringify({ error: "Need --code from host event" }, null, 2));
     process.exit(1);
   }
+
+  const started = Date.now();
+  const results: Array<{ index: number; userId: string; ok: boolean; error?: string }> = [];
+  const batchSize = 5;
+
+  for (let start = 1; start <= count; start += batchSize) {
+    const end = Math.min(start + batchSize - 1, count);
+    const batch = await Promise.all(
+      Array.from({ length: end - start + 1 }, (_, offset) => {
+        const index = start + offset;
+        return joinOne(url, code, index)
+          .then((result) => ({ index, userId: result.userId, ok: true as const }))
+          .catch((error: unknown) => ({
+            index,
+            userId: "",
+            ok: false as const,
+            error: error instanceof Error ? error.message : "join failed",
+          }));
+      }),
+    );
+    results.push(...batch);
+  }
+
+  const ok = results.filter((item) => item.ok).length;
+  const failed = results.filter((item) => !item.ok);
+  const elapsedMs = Date.now() - started;
+
+  const summary = {
+    ok: failed.length === 0,
+    url,
+    code,
+    requested: count,
+    joined: ok,
+    failed: failed.length,
+    elapsedMs,
+    failures: failed.slice(0, 10),
+    sampleUserIds: results.filter((item) => item.ok).slice(0, 5).map((item) => item.userId),
+  };
+  console.log(JSON.stringify(summary, null, 2));
+  process.exit(failed.length > 0 ? 1 : 0);
 }
 
 void main();

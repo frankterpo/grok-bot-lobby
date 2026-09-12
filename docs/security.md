@@ -57,8 +57,12 @@ There is **no** unauthenticated API to list all events or enumerate codes.
 
 ## Rate limiting
 
-- **Claim/join** (`POST /api/bots/claim`): 20 requests per IP per minute.
+- **Claim/join** (`POST /api/bots/claim`): 60 requests per IP per minute (supports ~45-bot cowork bursts).
+- **Token sync** (`POST /api/lobby/sync`): 120 requests per bot per minute (DO + isolate).
+- **Heartbeat** (`POST /api/presence/heartbeat`): 120 requests per bot per minute (DO + isolate).
 - **Event creation** (`POST /api/events`): 10 requests per IP per minute.
+- Identical token syncs are deduplicated server-side (no snapshot churn).
+- Task labels capped at 80 characters.
 - Failed code lookups return generic 404 — no hint whether a code format is valid.
 
 ## Persistence (production)

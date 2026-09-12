@@ -15,11 +15,12 @@ import {
   type Actor,
   type Attendee,
   type BotContext,
-  type BotProfile,
   type Event,
   type ExchangeStatus,
+  type IdentitySlot,
   type LobbySnapshot,
   type LobbyToken,
+  type LumaProfile,
   type PresenceRecord,
   type SessionView,
   type ShareLevel,
@@ -27,16 +28,17 @@ import {
   type TokenExchangeRequest,
   type TokenStatus,
   BOT_COLORS,
-  TASK_LABEL_MAX,
+  HOST_USER_ID,
   createEventCode,
   createId,
   presenceState,
   receivedTokensFor,
   tokenKey,
-  tokenSyncFingerprint,
 } from "@/lib/domain";
 import { joinUrl } from "@/lib/format";
+import { applyProfileInputs, profileInputsFromAttendee } from "@/lib/lobby-profiles";
 import { deriveChecklist } from "@/lib/onboarding";
+import { buildToken, tokensEqual, truncateTaskLabel } from "@/lib/token-utils";
 import {
   emptyPersistedState,
   type PersistedLobbyState,
@@ -58,10 +60,12 @@ type ClaimInput = {
   shareLevel: ShareLevel;
   hasGrokBot: boolean;
   acceptPermissions: boolean;
-  lumaHandle?: string;
   lumaProfileUrl?: string;
+  lumaHandle?: string;
+  githubProfileUrl?: string;
   githubHandle?: string;
-  originUsername?: string;
+  originProfileUrl?: string;
+  originHandle?: string;
 };
 
 type SyncInput = {
@@ -78,7 +82,7 @@ type EmitFn = (eventId: string) => void;
 export class LobbyMemory {
   private events = new Map<string, StoredEvent>();
   private tokens = new Map<string, LobbyToken>();
-  private profiles = new Map<string, BotProfile>();
+  private profiles = new Map<string, LumaProfile>();
   private presence = new Map<string, PresenceRecord>();
   private prefs = new Map<string, UserPrefs>();
   private claimed = new Map<string, Set<string>>();
@@ -242,7 +246,7 @@ export class LobbyMemory {
     const profiles = event
       ? event.attendees
           .map((attendee) => this.profiles.get(attendee.id))
-          .filter((profile): profile is BotProfile => Boolean(profile))
+          .filter((profile): profile is LumaProfile => Boolean(profile))
       : [];
     const exchanges = eventId ? this.exchangesFor(eventId) : [];
     const pendingApprovalCount = exchanges.filter((item) => item.status === "pending").length;
@@ -319,7 +323,7 @@ export class LobbyMemory {
     return this.snapshot({ eventId, actor, origin: "" });
   }
 
-  claim(actor: Actor, input: ClaimInput, origin: string): { snapshot: LobbySnapshot; userId: string } {
+  async claim(actor: Actor, input: ClaimInput, origin: string): Promise<{ snapshot: LobbySnapshot; userId: string }> {
     const stored = this.getByCode(input.eventCode);
     if (!stored) {
       throw new LobbyError("That code isn't a live lobby. Ask the host to copy the join link again.", 404);
@@ -355,23 +359,18 @@ export class LobbyMemory {
       id: userId,
       name,
       botColor: input.botColor,
-      lumaHandle: input.lumaHandle?.trim() || undefined,
-      lumaProfileUrl: input.lumaProfileUrl?.trim() || undefined,
+      lumaProfileUrl: input.lumaProfileUrl?.trim(),
+      lumaHandle: input.lumaHandle?.trim(),
+      githubProfileUrl: input.githubProfileUrl?.trim(),
+      githubHandle: input.githubHandle?.trim(),
+      originProfileUrl: input.originProfileUrl?.trim(),
+      originHandle: input.originHandle?.trim(),
       eventId: stored.id,
       rsvpStatus: "going",
       isCurrentUser: false,
     };
-    if (input.lumaHandle || input.lumaProfileUrl || input.githubHandle || input.originUsername) {
-      this.profiles.set(userId, {
-        userId,
-        lumaHandle: input.lumaHandle?.trim(),
-        lumaProfileUrl: input.lumaProfileUrl?.trim(),
-        githubHandle: input.githubHandle?.trim(),
-        originUsername: input.originUsername?.trim(),
-        pastEvents: [],
-      });
-    }
     stored.attendees = [...stored.attendees, person];
+    await applyProfileInputs(stored, userId, profileInputsFromAttendee(person), this.profiles);
     const claimed = this.claimed.get(stored.id) ?? new Set<string>();
     claimed.add(userId);
     this.claimed.set(stored.id, claimed);
@@ -396,27 +395,23 @@ export class LobbyMemory {
     if (!canSyncToken(live, input.botId)) {
       throw new LobbyError("You can only sync your own bot token.", 403);
     }
-    const label = input.taskLabel.trim();
+    const label = truncateTaskLabel(input.taskLabel);
     if (!label) {
       throw new LobbyError("Give the token a label.", 400);
     }
-    if (label.length > TASK_LABEL_MAX) {
-      throw new LobbyError(`Task label must be ${TASK_LABEL_MAX} characters or fewer.`, 400);
-    }
     const prefs = this.prefs.get(input.botId);
     const shareLevel = input.shareLevel ?? prefs?.shareLevel ?? "label+status";
-    const next: LobbyToken = {
+    const key = tokenKey(input.eventId, input.botId);
+    const existing = this.tokens.get(key);
+    const next = buildToken({
       botId: input.botId,
       eventId: input.eventId,
       taskLabel: label,
       status: input.status,
-      focus: input.focus?.trim() || undefined,
-      timestamp: new Date().toISOString(),
+      focus: input.focus,
       shareLevel,
-    };
-    const key = tokenKey(input.eventId, input.botId);
-    const existing = this.tokens.get(key);
-    if (existing && tokenSyncFingerprint(existing) === tokenSyncFingerprint(next)) {
+    });
+    if (existing && tokensEqual(existing, next)) {
       this.ensurePresence(input.eventId, input.botId, true);
       return this.snapshot({ eventId: input.eventId, actor: live, origin: "" });
     }
@@ -625,24 +620,27 @@ export class LobbyMemory {
     };
   }
 
-  updateProfile(actor: Actor, eventId: string, profile: BotProfile): LobbySnapshot {
-    if (!actor.userId || actor.userId !== profile.userId) {
-      throw new LobbyError("You can only update your own profile.", 403);
+  async updateProfile(
+    actor: Actor,
+    input: {
+      eventId: string;
+      botId: string;
+      lumaProfileUrl?: string;
+      lumaHandle?: string;
+      githubProfileUrl?: string;
+      githubHandle?: string;
+      originProfileUrl?: string;
+      originHandle?: string;
+    },
+  ): Promise<LobbySnapshot> {
+    const stored = this.requireEvent(input.eventId);
+    const live = this.actor(actor, stored);
+    if (live.userId !== input.botId) {
+      throw new LobbyError("You can only update your own bot profile.", 403);
     }
-    const stored = this.requireEvent(eventId);
-    const attendee = stored.attendees.find((person) => person.id === profile.userId);
-    if (!attendee) {
-      throw new LobbyError("No bot with that id in this lobby.", 404);
-    }
-    this.profiles.set(profile.userId, profile);
-    if (profile.lumaHandle) {
-      attendee.lumaHandle = profile.lumaHandle;
-    }
-    if (profile.lumaProfileUrl) {
-      attendee.lumaProfileUrl = profile.lumaProfileUrl;
-    }
-    this.emit(eventId);
-    return this.snapshot({ eventId, actor, origin: "" });
+    await applyProfileInputs(stored, input.botId, input, this.profiles);
+    this.emit(input.eventId);
+    return this.snapshot({ eventId: input.eventId, actor: live, origin: "" });
   }
 
   updatePrefs(
