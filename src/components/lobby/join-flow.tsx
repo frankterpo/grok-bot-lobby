@@ -30,12 +30,13 @@ type JoinPath = "pick" | "returning" | "new-explain" | "new-claim";
 
 type JoinFlowProps = {
   code: string;
+  publicOrigin?: string;
 };
 
-export function JoinFlow({ code }: JoinFlowProps) {
+export function JoinFlow({ code, publicOrigin }: JoinFlowProps) {
   const router = useRouter();
   const [path, setPath] = useState<JoinPath>("pick");
-  const origin = clientLobbyOrigin();
+  const origin = publicOrigin ?? clientLobbyOrigin();
   const [name, setName] = useState("Reed");
   const [color, setColor] = useState<string>(BOT_COLORS.cyan);
   const [shareLevel, setShareLevel] = useState<ShareLevel>("label+status");
