@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
+import { CopyBlock } from "@/components/lobby/copy-block";
 import { PermissionsWalkthrough } from "@/components/lobby/permissions-walkthrough";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import {
 } from "@/lib/domain";
 import { assertNever } from "@/lib/domain";
 import { clientLobbyOrigin } from "@/lib/format";
+import { buildJoinLobbyNpmBlock, buildNoCloneCurlBlock } from "@/lib/join-blocks";
 
 type JoinPath = "pick" | "returning" | "new-explain" | "new-claim";
 
@@ -43,6 +45,15 @@ export function JoinFlow({ code }: JoinFlowProps) {
   const [hasGrokBot, setHasGrokBot] = useState(true);
   const [claimName, setClaimName] = useState(name);
   const [claimColor, setClaimColor] = useState(color);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const noCloneBlock = buildNoCloneCurlBlock({
+    code,
+    origin,
+    name: "YOUR_NAME",
+    task: "What you are working on",
+  });
+  const npmBlock = buildJoinLobbyNpmBlock({ code, origin, name: "YOUR_NAME" });
 
   async function claim(args: { name: string; botColor: string; grok: boolean }): Promise<void> {
     setPending(true);
@@ -101,12 +112,16 @@ export function JoinFlow({ code }: JoinFlowProps) {
           shareLevel,
           pending,
           error,
+          showAdvanced,
+          noCloneBlock,
+          npmBlock,
           setPath,
           setName,
           setColor,
           setShareLevel,
           setClaimName,
           setClaimColor,
+          setShowAdvanced,
           claimName,
           claimColor,
           claim,
@@ -130,6 +145,9 @@ function joinBody(args: {
   shareLevel: ShareLevel;
   pending: boolean;
   error: string | null;
+  showAdvanced: boolean;
+  noCloneBlock: string;
+  npmBlock: string;
   setPath: (path: JoinPath) => void;
   setName: (name: string) => void;
   setColor: (color: string) => void;
@@ -138,27 +156,46 @@ function joinBody(args: {
   claimColor: string;
   setClaimName: (name: string) => void;
   setClaimColor: (color: string) => void;
+  setShowAdvanced: (open: boolean) => void;
   claim: (input: { name: string; botColor: string; grok: boolean }) => Promise<void>;
 }): ReactNode {
   switch (args.path) {
     case "pick":
       return (
-        <div className="mt-3">
-          <h1 className="text-[16px] font-medium text-white/90">Join via Grok Bot</h1>
-          <p className="mt-2 text-[12px] text-white/50">
-            This page is a mirror. Tell your bot: Join lobby {args.code} at this URL. Permissions live in standing
-            rules, not this form.
+        <div className="mt-3 space-y-3">
+          <h1 className="text-[16px] font-medium text-white/90">Join via Grok Bot (no clone)</h1>
+          <p className="text-[12px] leading-relaxed text-white/50">
+            Paste the block below into Grok Bot <span className="text-white/70">Agent Computer</span>. It claims your
+            slot, syncs a task token, and heartbeats every 60s — no repo clone, no npm install.
           </p>
-          <pre className="mt-3 overflow-x-auto rounded-md border border-[#262626] bg-[#0d0d0d] p-2 text-[11px] text-white/70">
-            {`npm run join-lobby -- --code ${args.code} --url ${args.origin} --name Alice --color cyan --task "Setting up event credits"`}
-          </pre>
-          {args.error ? <p className="mt-3 text-[12px] text-red-400">{args.error}</p> : null}
+          <p className="text-[11px] text-white/40">
+            Or tell your bot: Join lobby {args.code.toUpperCase()} at {args.origin} — then paste this block when it
+            opens a terminal.
+          </p>
+          <CopyBlock text={args.noCloneBlock} multiline />
           <button
             type="button"
-            className="mt-4 text-[11px] text-white/35 underline-offset-2 hover:underline"
+            className="text-[11px] text-white/40 underline-offset-2 hover:text-white/60 hover:underline"
+            onClick={() => args.setShowAdvanced(!args.showAdvanced)}
+          >
+            {args.showAdvanced ? "Hide" : "Show"} full bridge (clone repo + join-lobby)
+          </button>
+          {args.showAdvanced ? (
+            <div className="space-y-1.5">
+              <p className="text-[11px] text-white/40">
+                Use when you need grok-bot-skill helpers (<code className="font-mono">context-from-bot</code>,{" "}
+                <code className="font-mono">sync-token</code>).
+              </p>
+              <CopyBlock text={args.npmBlock} multiline />
+            </div>
+          ) : null}
+          {args.error ? <p className="text-[12px] text-red-400">{args.error}</p> : null}
+          <button
+            type="button"
+            className="block text-[11px] text-white/35 underline-offset-2 hover:underline"
             onClick={() => args.setPath("new-explain")}
           >
-            Fallback: claim from this browser
+            Fallback: browser mirror only (not Grok Bot)
           </button>
         </div>
       );
@@ -184,18 +221,26 @@ function joinBody(args: {
     case "new-explain":
       return (
         <div className="mt-3 space-y-3">
-          <h1 className="text-[16px] font-medium text-white/90">Your Grok Bot joins this event…</h1>
+          <h1 className="text-[16px] font-medium text-white/90">Browser mirror only</h1>
           <p className="text-[12px] leading-relaxed text-white/55">
-            I&apos;m not a video tile. I&apos;m a bot with your name, a color, and a live task token. The lobby sees
-            what you&apos;re working on — not your workspace.
+            This path does not connect to Grok Bot. You appear on the grid only while this tab stays open, with{" "}
+            <code className="font-mono text-white/60">hasGrokBot: false</code>. For real bot wiring, use the curl block
+            on the previous screen.
           </p>
           <Button
             type="button"
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => args.setPath("new-claim")}
           >
-            Continue
+            Continue as mirror
           </Button>
+          <button
+            type="button"
+            className="w-full text-[11px] text-white/40 underline-offset-2 hover:underline"
+            onClick={() => args.setPath("pick")}
+          >
+            Back to Grok Bot join (no clone)
+          </button>
         </div>
       );
     case "new-claim":
@@ -207,7 +252,7 @@ function joinBody(args: {
             void args.claim({ name: args.claimName, botColor: args.claimColor, grok: false });
           }}
         >
-          <h1 className="text-[16px] font-medium text-white/90">Name your bot</h1>
+          <h1 className="text-[16px] font-medium text-white/90">Name your mirror</h1>
           <Input
             value={args.claimName}
             onChange={(event) => args.setClaimName(event.target.value)}
@@ -236,7 +281,7 @@ function joinBody(args: {
             disabled={args.pending || args.claimName.trim().length === 0}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            Join lobby
+            Join as mirror
           </Button>
         </form>
       );

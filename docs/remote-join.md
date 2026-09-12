@@ -2,19 +2,50 @@
 
 Guests need a **public lobby URL** plus an **event code** from the host. Localhost (`127.0.0.1:4521`) only works on the host machine.
 
-## You must clone the repo first
+## Recommended: no-clone join (fastest)
 
-`npm run join-lobby` is **not** a global CLI. It only works inside this project after dependencies are installed. Running it from `~` or any folder without `package.json` fails with **ENOENT**.
+**No repo clone.** Host copies the **Grok Bot join block** from the share wizard (or guest opens `/join/CODE`).
+
+Guest pastes the block into Grok Bot **Agent Computer**. It runs:
+
+1. `POST /api/bots/claim` with `hasGrokBot: true`
+2. `POST /api/lobby/sync` (task token)
+3. Heartbeat loop every **60s** on `POST /api/presence/heartbeat`
+
+Full guide: [`docs/no-clone-join.md`](./no-clone-join.md)
+
+Requires `python3` on the guest machine to parse the claim JSON (standard on macOS).
+
+## Full bridge: clone + join-lobby
+
+Use when you need grok-bot-skill helpers (`context-from-bot`, `sync-token` CLI):
 
 ```bash
-git clone https://github.com/franciscoterpolilli/grok-bot-lobby.git
+git clone https://github.com/frankterpo/grok-bot-lobby.git
 cd grok-bot-lobby
 npm install
+npm run join-lobby -- \
+  --code CODE \
+  --url https://YOUR_LOBBY_URL \
+  --name Alice \
+  --color cyan \
+  --task "Setting up event credits"
 ```
 
-Then run the join command below (or use the curl-only path if you refuse to clone).
+Keep the terminal open — heartbeats every 60s. Use `--once` for a single claim+heartbeat.
 
-## Recommended: Cloudflare deploy (Path B)
+**Sync task later:**
+
+```bash
+npm run sync-token -- \
+  --url https://YOUR_LOBBY_URL \
+  --eventId EVENT_ID \
+  --botId <ALICE_ID> \
+  --task "Pairing on auth" \
+  --status working
+```
+
+## Deploy (host)
 
 Deploy once — one stable URL serves **all** your events. Each event still gets its own join code.
 
@@ -36,8 +67,6 @@ LOBBY_PUBLIC_URL=https://grok-bot-lobby.<account>.workers.dev
 NEXT_PUBLIC_LOBBY_PUBLIC_URL=https://grok-bot-lobby.<account>.workers.dev
 ```
 
-The share wizard auto-detects `*.workers.dev` and `*.pages.dev` hosts — env vars are optional when using the default deploy URL.
-
 Stable join link (replace `CODE` with the host's event code):
 
 ```
@@ -49,8 +78,6 @@ https://grok-bot-lobby.<account>.workers.dev/join/CODE
 ```bash
 npm run preview
 ```
-
-Uses Miniflare with Durable Object bindings — same persistence model as production.
 
 ### Force in-memory store (local dev only)
 
@@ -64,58 +91,21 @@ For development on your Mac with a **custom domain** (requires DNS in Cloudflare
 
 **Full setup:** [`docs/persistent-tunnel.md`](./persistent-tunnel.md)
 
-```bash
-npm run tunnel:setup -- --hostname lobby.yourdomain.com --zone yourdomain.com
-cp .env.local.example .env.local   # set LOBBY_PUBLIC_URL
-npm run tunnel:install
-npm run dev
-```
+## Remote attendee paths
 
-## Remote attendee (Alice)
+### A. Grok Bot curl block (no clone) — recommended
 
-### A. Join link
+See [`docs/no-clone-join.md`](./no-clone-join.md) or `/join/CODE` on the lobby.
+
+### B. Join link (browser mirror only)
 
 ```
 https://YOUR_LOBBY_URL/join/CODE
 ```
 
-Get **CODE** from the host after they create an event.
+Shows on grid while tab is open. Does **not** wire Grok Bot (`hasGrokBot: false`).
 
-### B. Clone and install (required for `join-lobby`)
-
-```bash
-git clone https://github.com/franciscoterpolilli/grok-bot-lobby.git
-cd grok-bot-lobby
-npm install
-```
-
-### C. Join command
-
-```bash
-npm run join-lobby -- \
-  --code CODE \
-  --url https://YOUR_LOBBY_URL \
-  --name Alice \
-  --color cyan \
-  --task "Setting up event credits"
-```
-
-Keep the terminal open — heartbeats every 30s. Use `--once` for a single claim+heartbeat.
-
-**Sync task later:**
-
-```bash
-npm run sync-token -- \
-  --url https://YOUR_LOBBY_URL \
-  --eventId EVENT_ID \
-  --botId <ALICE_ID> \
-  --task "Pairing on auth" \
-  --status working
-```
-
-### D. Curl-only join (no repo)
-
-Claim once without cloning:
+### C. Curl-only reference (manual)
 
 ```bash
 PUBLIC_URL=https://YOUR_LOBBY_URL
@@ -125,17 +115,16 @@ curl -sS -X POST "$PUBLIC_URL/api/bots/claim" \
   -d '{"eventCode":"CODE","name":"Alice","botColor":"cyan","hasGrokBot":true,"acceptPermissions":true}'
 ```
 
-Save `userId` and `eventId` from the JSON response. To stay visible on the grid you must heartbeat every 30s — either keep a terminal open with a loop, or use `join-lobby` from the cloned repo:
+Save `userId` and `eventId`. Heartbeat every 60s:
 
 ```bash
-# Manual heartbeat loop (replace EVENT_ID, BOT_ID from claim response)
 while true; do
   curl -sS -X POST "$PUBLIC_URL/api/presence/heartbeat" \
     -H 'Content-Type: application/json' \
     -H 'x-lobby-as: attendee' \
     -H "x-lobby-bot-id: BOT_ID" \
     -d "{\"eventId\":\"EVENT_ID\",\"botId\":\"BOT_ID\"}"
-  sleep 30
+  sleep 60
 done
 ```
 
@@ -145,6 +134,6 @@ See [`docs/security.md`](./security.md) for join-code entropy, rate limits, and 
 
 ## Grok Bot credits (token burn)
 
-**npm scripts do not consume Grok Bot chat credits.** They are plain HTTP calls.
+**curl / npm scripts do not consume Grok Bot chat credits.** They are plain HTTP calls.
 
-Credits are spent when you **babysit the bot in Grok Bot chat**. Prefer the CLI bridge for lobby join/sync.
+Credits are spent when you **babysit the bot in Grok Bot chat**. Prefer the curl block or CLI bridge for lobby join/sync.

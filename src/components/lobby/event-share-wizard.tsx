@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Circle, Cloud, Copy, Link2, Loader2 } from "lucide-react";
 
+import { CopyBlock } from "@/components/lobby/copy-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { lobbyFetch } from "@/lib/client";
 import type { Event } from "@/lib/domain";
 import { joinUrl as buildJoinUrl, resolveShareJoinUrl, type PublicUrlStatus } from "@/lib/format";
+import { buildGuestJoinMessage } from "@/lib/join-blocks";
 import { cn } from "@/lib/utils";
 
 type StepStatus = "pending" | "in_progress" | "complete" | "blocked";
@@ -22,23 +24,6 @@ const DEPLOY_COMMAND = "npm run deploy";
 const WRANGLER_LOGIN = "npx wrangler login";
 const TUNNEL_INSTALL_COMMAND = "npm run tunnel:install";
 const DEV_RESTART_COMMAND = "npm run dev";
-const REPO_CLONE_URL = "https://github.com/franciscoterpolilli/grok-bot-lobby.git";
-
-function buildGuestJoinMessage(code: string, shareUrl: string, publicOrigin: string): string {
-  return [
-    `Join lobby ${code} at ${shareUrl}`,
-    "",
-    "Tell your Grok Bot:",
-    `Join lobby ${code} at ${publicOrigin}`,
-    "",
-    "Or run (clone repo first — join-lobby only works inside the project):",
-    `git clone ${REPO_CLONE_URL}`,
-    "cd grok-bot-lobby",
-    "npm install",
-    `npm run join-lobby -- --code ${code} --url ${publicOrigin} --name Guest --color cyan --task "Joining the lobby"`,
-  ].join("\n");
-}
-
 function normalizeHostnameInput(input: string): string {
   let host = input.trim().toLowerCase();
   host = host.replace(/^https?:\/\//, "");
@@ -129,42 +114,6 @@ function WizardStep({
   );
 }
 
-function CopyBlock({ text, multiline = false }: { text: string; multiline?: boolean }) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy(): Promise<void> {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
-  }
-
-  return (
-    <div
-      className={cn(
-        "flex items-start gap-1 rounded-md border border-[#262626] bg-[#0d0d0d] px-2 py-1.5",
-        multiline ? "flex-col sm:flex-row sm:items-start" : "items-center",
-      )}
-    >
-      <code
-        className={cn(
-          "min-w-0 flex-1 font-mono text-[10px] text-white/55",
-          multiline ? "whitespace-pre-wrap leading-relaxed" : "truncate",
-        )}
-      >
-        {text}
-      </code>
-      <button
-        type="button"
-        onClick={() => void copy()}
-        className="shrink-0 text-white/35 hover:text-white/70"
-        aria-label="Copy"
-      >
-        {copied ? <Check className="size-3" strokeWidth={1.5} /> : <Copy className="size-3" strokeWidth={1.5} />}
-      </button>
-    </div>
-  );
-}
-
 export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardProps) {
   const [publicStatus, setPublicStatus] = useState<PublicUrlStatus | null>(null);
   const [polling, setPolling] = useState(false);
@@ -218,7 +167,7 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
   }, [shareable, publicStatus?.publicUrl, previewPublicUrl, shareUrl]);
 
   const guestMessage = useMemo(
-    () => buildGuestJoinMessage(code, shareUrl, publicOrigin),
+    () => buildGuestJoinMessage({ code, shareUrl, publicOrigin }),
     [code, shareUrl, publicOrigin],
   );
 
@@ -551,9 +500,7 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
               </p>
             ) : (
               <>
-                <pre className="max-h-44 overflow-auto whitespace-pre-wrap rounded-lg border border-[#262626] bg-[#161616] p-2 font-mono text-[10px] leading-relaxed text-white/55">
-                  {guestMessage}
-                </pre>
+                <CopyBlock text={guestMessage} multiline className="border-[#262626] bg-[#161616]" />
                 <Button
                   type="button"
                   size="sm"
@@ -562,7 +509,7 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
                   className="w-full border-[#262626] bg-transparent text-white/70 hover:bg-white/5"
                 >
                   {messageCopied ? <Check strokeWidth={1.5} /> : <Copy strokeWidth={1.5} />}
-                  <span>{messageCopied ? "Message copied" : "Copy message for guest"}</span>
+                  <span>{messageCopied ? "Message copied" : "Copy Grok Bot join block for guest"}</span>
                 </Button>
               </>
             )}
