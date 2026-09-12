@@ -150,3 +150,12 @@
     transform-box: fill-box;
   }
 }
+
+.group-cluster-avatar .grok-bot-lazy {
+  filter: drop-shadow(0 0 0 1px #0d0d0d);
+}
+
+.lobby-event-row:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sidebar-ring) 55%, transparent);
+  outline-offset: 1px;
+}

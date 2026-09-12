@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 
-import { GrokBot } from "@/components/lobby/grok-bot";
 import { BotCard } from "@/components/lobby/bot-card";
+import { GroupClusterAvatar } from "@/components/lobby/group-cluster-avatar";
 import { presenceState, type Attendee, type LobbyToken, type PresenceRecord, type Squad } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 
@@ -93,6 +93,10 @@ export function BotGrid({
               selectedSquadId === squad.id ||
               (selectedAttendeeId !== null &&
                 squad.members.some((member) => member.id === selectedAttendeeId));
+            const clusterColors = squad.members.slice(0, 3).map((member) => member.botColor ?? "#f97066");
+            const clusterAnimated = squad.members.some((member) =>
+              isWorking(member.id, tokens, presence, now),
+            );
 
             return (
               <button
@@ -100,24 +104,16 @@ export function BotGrid({
                 type="button"
                 onClick={() => onSelectSquad(squad.id)}
                 className={cn(
-                  "rounded-lg border bg-[#161616] p-2 text-left",
+                  "flex flex-col items-center gap-2 rounded-lg border bg-[#161616] p-3 text-center transition-colors",
                   squadSelected ? "border-[#f59e0b]" : "border-[#262626] hover:border-white/20",
                 )}
               >
-                <div className="grid grid-cols-2 gap-1">
-                  {squad.members.slice(0, 4).map((member) => (
-                    <div key={member.id} className="grid place-items-center py-1">
-                      <GrokBot
-                        attendee={member}
-                        size="sm"
-                        youLabel={false}
-                        youRing={member.isCurrentUser}
-                        animated={isWorking(member.id, tokens, presence, now)}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <p className="micro mt-2 text-white/45">
+                <GroupClusterAvatar
+                  colors={clusterColors}
+                  size={44}
+                  animated={clusterAnimated}
+                />
+                <p className="micro text-white/45">
                   {isYourSquad ? (
                     <>
                       <span className="text-[#f59e0b]/70">YOU</span>
