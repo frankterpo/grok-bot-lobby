@@ -135,12 +135,12 @@ export function LobbySidebar({
       </nav>
 
       {showFooter ? (
-        <div className="flex shrink-0 items-stretch border-t border-sidebar-border">
+        <div className="group flex shrink-0 items-stretch border-t border-sidebar-border transition-colors hover:bg-sidebar-accent">
           {currentAttendee && actor.userId ? (
             <button
               type="button"
               onClick={onProfileClick}
-              className="lobby-event-row flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent"
+              className="lobby-event-row flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-transparent"
             >
               <GrokBotMark
                 color={currentAttendee.botColor ?? "#f97066"}
@@ -159,7 +159,7 @@ export function LobbySidebar({
               render={
                 <button
                   type="button"
-                  className="relative flex shrink-0 items-center justify-center px-3 py-2.5 text-white/45 transition-colors hover:bg-sidebar-accent hover:text-white/70"
+                  className="lobby-event-row relative flex shrink-0 items-center justify-center px-3 py-2.5 text-white/45 transition-colors hover:bg-transparent group-hover:text-white/70"
                   aria-label={
                     adminAttentionCount > 0
                       ? `Admin tasks, ${adminAttentionCount} remaining`
