@@ -106,8 +106,7 @@
   text-transform: uppercase;
 }
 
-/* Grok Bot mark — geometry from Grok Bot.app; working motion is a minimal CSS stand-in
-   (production uses rAF pose morphing; grok-bot-lazy class not present in desktop bundle). */
+/* Grok Bot mark — geometry from Grok Bot.app; CSS stand-in for desktop rAF pose morphing. */
 .grok-bot-mark--fill .grok-bot-mark__head {
   fill: var(--fg);
 }
@@ -116,84 +115,140 @@
   fill: var(--bg);
 }
 
-@keyframes grok-bot-lazy-idle-bob {
+/* Resting: subtle breathe, alternating blinks, occasional look-away. */
+@keyframes grok-bot-rest-breathe {
   0%,
   100% {
     transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: translateY(-1.2%) rotate(-0.5deg);
+    transform: translateY(-2.5%) rotate(-0.8deg);
   }
 }
 
-@keyframes grok-bot-lazy-idle-eye {
+@keyframes grok-bot-rest-look {
+  0%,
+  14%,
+  100% {
+    transform: translate(0, 0);
+  }
+  22%,
+  34% {
+    transform: translate(4%, -1.5%);
+  }
+  44%,
+  56% {
+    transform: translate(-3%, 1.5%);
+  }
+  66%,
+  78% {
+    transform: translate(2%, 2%);
+  }
+  86%,
+  94% {
+    transform: translate(-1.5%, -1%);
+  }
+}
+
+@keyframes grok-bot-rest-blink-left {
+  0%,
+  41%,
+  45%,
+  100% {
+    transform: scaleY(1);
+  }
+  43% {
+    transform: scaleY(0.06);
+  }
+}
+
+@keyframes grok-bot-rest-blink-right {
+  0%,
+  67%,
+  71%,
+  100% {
+    transform: scaleY(1);
+  }
+  69% {
+    transform: scaleY(0.06);
+  }
+}
+
+/* Working: faster bob and more active eye motion. */
+@keyframes grok-bot-work-bob {
   0%,
   100% {
-    transform: translate(0, 0) scaleY(1);
+    transform: scale(1) rotate(0deg);
   }
-  15% {
-    transform: translate(0.4px, -0.3px) scaleY(1);
+  20% {
+    transform: scale(1.04) rotate(-2deg);
   }
-  30% {
-    transform: translate(-0.3px, 0.2px) scaleY(1);
+  40% {
+    transform: scale(0.98) rotate(1.5deg);
   }
-  45% {
-    transform: translate(0.2px, 0) scaleY(1);
-  }
-  48% {
-    transform: translate(0, 0) scaleY(0.1);
-  }
-  50% {
-    transform: translate(0, 0) scaleY(1);
-  }
-  65% {
-    transform: translate(-0.4px, 0.3px) scaleY(1);
+  60% {
+    transform: scale(1.05) rotate(0.5deg);
   }
   80% {
-    transform: translate(0.3px, -0.2px) scaleY(1);
+    transform: scale(1.01) rotate(-1deg);
   }
 }
 
-@keyframes grok-bot-lazy-bob {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-3%) rotate(-1.5deg);
-  }
-}
-
-@keyframes grok-bot-lazy-eye {
+@keyframes grok-bot-work-eye {
   0%,
   100% {
     transform: translate(0, 0);
   }
-  35% {
-    transform: translate(0.5px, -0.5px);
+  25% {
+    transform: translate(5%, -3%);
   }
-  70% {
-    transform: translate(-0.5px, 0.5px);
+  50% {
+    transform: translate(-4%, 2%);
+  }
+  75% {
+    transform: translate(3%, 3%);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .grok-bot-lazy {
-    animation: grok-bot-lazy-idle-bob 3.2s ease-in-out infinite;
+  .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) > svg {
+    animation: grok-bot-rest-breathe 5.2s ease-in-out infinite;
+    transform-origin: center;
+    will-change: transform;
   }
 
-  .grok-bot-lazy .grok-bot-mark__eyes {
-    animation: grok-bot-lazy-idle-eye 4.5s ease-in-out infinite;
+  .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eyes {
+    animation: grok-bot-rest-look 8.4s cubic-bezier(0.3, 0.7, 0.25, 1) infinite;
     transform-origin: center;
     transform-box: fill-box;
+    will-change: transform;
   }
 
-  .grok-bot-lazy.grok-bot-mark--working {
-    animation: grok-bot-lazy-bob 1.4s ease-in-out infinite;
+  .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--left {
+    animation: grok-bot-rest-blink-left 5.8s linear infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+    will-change: transform;
+  }
+
+  .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--right {
+    animation: grok-bot-rest-blink-right 6.4s linear infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+    will-change: transform;
+  }
+
+  .grok-bot-lazy.grok-bot-mark--working > svg {
+    animation: grok-bot-work-bob 0.85s ease-in-out infinite;
+    transform-origin: center;
+    will-change: transform;
   }
 
   .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__eyes {
-    animation: grok-bot-lazy-eye 2.2s ease-in-out infinite;
+    animation: grok-bot-work-eye 0.95s ease-in-out infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+    will-change: transform;
   }
 }
 

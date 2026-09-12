@@ -28,4 +28,6 @@ File: `dist/renderer/assets/index-C57MhV1e.js`
 ## Lobby implementation
 
 - `GrokBotMark` ports head + eye paths with `grok-bot-mark--fill` CSS vars
-- Working animation: minimal CSS bob (`grok-bot-lazy-bob`, `grok-bot-lazy-eye`) when `presence.state === 'active'` && `token.status === 'working'`
+- **Resting** (default): `grok-bot-rest-breathe` on SVG, `grok-bot-rest-look` on eyes group, per-eye `grok-bot-rest-blink-left/right`
+- **Working**: `grok-bot-work-bob` + `grok-bot-work-eye` when `animated={true}` (`grok-bot-mark--working` class)
+- Working state derived from `presenceState === 'active' && token.status === 'working'` in `bot-card`, `bot-grid`, `lobby-app` (sidebar profile), `context-panel`
