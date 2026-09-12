@@ -150,7 +150,7 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
         );
       case "checkClaimRateLimit": {
         const ip = payload.ip as string;
-        const allowed = await this.checkRateLimit(`claim:${ip}`, 20, 60_000);
+        const allowed = await this.checkRateLimit(`claim:${ip}`, 60, 60_000);
         return { allowed };
       }
       case "checkSyncRateLimit": {

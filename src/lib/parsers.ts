@@ -34,6 +34,21 @@ export type ProfileBody = {
   originHandle?: string;
 };
 
+export type EnrichBody = ProfileInputs & {
+  userId?: string;
+  eventId?: string;
+  botId?: string;
+};
+
+type ProfileInputs = {
+  lumaProfileUrl?: string;
+  lumaHandle?: string;
+  githubProfileUrl?: string;
+  githubHandle?: string;
+  originProfileUrl?: string;
+  originHandle?: string;
+};
+
 export type SyncBody = {
   eventId: string;
   botId: string;
@@ -120,6 +135,30 @@ export function parseClaimBody(value: unknown): ClaimBody | null {
     githubHandle: asString(value.githubHandle) ?? undefined,
     originProfileUrl: asString(value.originProfileUrl) ?? undefined,
     originHandle: asString(value.originHandle) ?? undefined,
+  };
+}
+
+export function parseEnrichBody(value: unknown): EnrichBody | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const inputs = {
+    lumaProfileUrl: asString(value.lumaProfileUrl) ?? undefined,
+    lumaHandle: asString(value.lumaHandle) ?? undefined,
+    githubProfileUrl: asString(value.githubProfileUrl) ?? undefined,
+    githubHandle: asString(value.githubHandle) ?? undefined,
+    originProfileUrl: asString(value.originProfileUrl) ?? undefined,
+    originHandle: asString(value.originHandle) ?? undefined,
+  };
+  const hasInput = Object.values(inputs).some(Boolean);
+  if (!hasInput) {
+    return null;
+  }
+  return {
+    ...inputs,
+    userId: asString(value.userId) ?? undefined,
+    eventId: asString(value.eventId) ?? undefined,
+    botId: asString(value.botId) ?? undefined,
   };
 }
 
