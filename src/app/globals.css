@@ -116,6 +116,44 @@
   fill: var(--bg);
 }
 
+@keyframes grok-bot-lazy-idle-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-1.2%) rotate(-0.5deg);
+  }
+}
+
+@keyframes grok-bot-lazy-idle-eye {
+  0%,
+  100% {
+    transform: translate(0, 0) scaleY(1);
+  }
+  15% {
+    transform: translate(0.4px, -0.3px) scaleY(1);
+  }
+  30% {
+    transform: translate(-0.3px, 0.2px) scaleY(1);
+  }
+  45% {
+    transform: translate(0.2px, 0) scaleY(1);
+  }
+  48% {
+    transform: translate(0, 0) scaleY(0.1);
+  }
+  50% {
+    transform: translate(0, 0) scaleY(1);
+  }
+  65% {
+    transform: translate(-0.4px, 0.3px) scaleY(1);
+  }
+  80% {
+    transform: translate(0.3px, -0.2px) scaleY(1);
+  }
+}
+
 @keyframes grok-bot-lazy-bob {
   0%,
   100% {
@@ -140,14 +178,22 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .grok-bot-lazy {
+    animation: grok-bot-lazy-idle-bob 3.2s ease-in-out infinite;
+  }
+
+  .grok-bot-lazy .grok-bot-mark__eyes {
+    animation: grok-bot-lazy-idle-eye 4.5s ease-in-out infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+
   .grok-bot-lazy.grok-bot-mark--working {
     animation: grok-bot-lazy-bob 1.4s ease-in-out infinite;
   }
 
   .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__eyes {
     animation: grok-bot-lazy-eye 2.2s ease-in-out infinite;
-    transform-origin: center;
-    transform-box: fill-box;
   }
 }
 
