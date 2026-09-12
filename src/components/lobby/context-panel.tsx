@@ -335,7 +335,7 @@ function YouDetail({
         onApprove={onApprove}
         onReject={onReject}
       />
-      <div className="mt-auto">
+      <div className="mt-auto shrink-0">
         {canEditOwnBot(actor, attendee.id) ? (
           <div className="flex justify-end px-3 pb-2">
             <Button
