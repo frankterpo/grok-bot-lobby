@@ -1,6 +1,7 @@
 import type { Actor } from "@/lib/domain";
+import { ATTENDEE_COOKIE, SLOT_HEADER } from "@/lib/identity";
 import { getLobby } from "@/lib/lobby-store";
-import { ATTENDEE_COOKIE, SLOT_HEADER, actorFromRequest } from "@/lib/session";
+import { actorFromRequest } from "@/lib/session";
 import { cookies } from "next/headers";
 
 export const BOT_ID_HEADER = "x-lobby-bot-id";

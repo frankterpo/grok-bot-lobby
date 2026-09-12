@@ -32,7 +32,7 @@ export function canClaimBot(actor: Actor, event: Event): boolean {
 }
 
 export function canEditOwnBot(actor: Actor, attendeeId: string): boolean {
-  return actor.userId !== null && actor.userId === attendeeId;
+  return actor.userId !== null && actor.userId === attendeeId && actor.role !== "guest";
 }
 
 export function canSyncToken(actor: Actor, botId: string): boolean {

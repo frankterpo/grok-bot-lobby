@@ -47,25 +47,25 @@ export function LobbySidebar({
         {events.map((event) => {
           const active = event.id === activeEventId;
           return (
-            <button
+            <div
               key={event.id}
-              type="button"
-              onClick={() => onSelect(event.id)}
               className={cn(
                 "rounded-lg border px-2.5 py-2 text-left",
                 active ? "border-[#262626] bg-[#161616]" : "border-transparent hover:bg-[#161616]",
               )}
             >
-              <p className={cn("text-[12px] font-medium", active ? "text-[#f59e0b]" : "text-white/85")}>
-                {event.name}
-              </p>
-              <p className="micro mt-0.5 text-white/35">{formatEventDate(event.date)}</p>
+              <button type="button" className="w-full text-left" onClick={() => onSelect(event.id)}>
+                <p className={cn("text-[12px] font-medium", active ? "text-[#f59e0b]" : "text-white/85")}>
+                  {event.name}
+                </p>
+                <p className="micro mt-0.5 text-white/35">{formatEventDate(event.date)}</p>
+              </button>
               {active && joinUrl && canShareEvent(actor) ? (
                 <EventCodeChip code={event.eventCode} eventId={event.id} joinUrl={joinUrl} />
               ) : (
                 <p className="micro mt-1 text-white/30">{event.eventCode}</p>
               )}
-            </button>
+            </div>
           );
         })}
       </nav>

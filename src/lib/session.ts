@@ -6,11 +6,10 @@ import {
   type Actor,
   type IdentitySlot,
 } from "@/lib/domain";
+import { ATTENDEE_COOKIE, HOST_COOKIE, SLOT_HEADER } from "@/lib/identity";
 import { getLobby } from "@/lib/lobby-store";
 
-export const HOST_COOKIE = "gbl_host_id";
-export const ATTENDEE_COOKIE = "gbl_attendee_id";
-export const SLOT_HEADER = "x-lobby-as";
+export { ATTENDEE_COOKIE, HOST_COOKIE, SLOT_HEADER };
 
 export function parseSlot(value: string | null): IdentitySlot {
   if (value && isIdentitySlot(value)) {

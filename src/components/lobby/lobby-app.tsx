@@ -163,21 +163,23 @@ export function LobbyApp() {
       return [];
     }
     const ungrouped = snapshot.event.attendees.filter((attendee) => !attendee.squadId);
-    return [...ungrouped].sort((a, b) => {
-      if (a.id === snapshot.session.userId) {
-        return -1;
+    const rank = (id: string): number => {
+      if (id === snapshot.session.userId) {
+        return 0;
       }
-      if (b.id === snapshot.session.userId) {
+      const record = snapshot.presence.find((item) => item.userId === id);
+      if (record?.state === "active") {
         return 1;
       }
-      if (a.id === HOST_USER_ID) {
-        return -1;
+      if (id === HOST_USER_ID) {
+        return 2;
       }
-      if (b.id === HOST_USER_ID) {
-        return 1;
+      if (!id.startsWith("demo_")) {
+        return 3;
       }
-      return 0;
-    });
+      return 4;
+    };
+    return [...ungrouped].sort((a, b) => rank(a.id) - rank(b.id));
   }, [snapshot]);
 
   async function syncToken(input: { taskLabel: string; status: TokenStatus; shareLevel: ShareLevel }): Promise<void> {

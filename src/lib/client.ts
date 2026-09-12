@@ -1,5 +1,5 @@
 import { HOST_USER_ID, SEED_EVENT_CODE, type IdentitySlot, type LobbySnapshot } from "@/lib/domain";
-import { SLOT_HEADER } from "@/lib/session";
+import { SLOT_HEADER } from "@/lib/identity";
 
 export const SLOT_STORAGE_KEY = "gbl_as";
 export const ONBOARD_STORAGE_KEY = "gbl_onboarded";

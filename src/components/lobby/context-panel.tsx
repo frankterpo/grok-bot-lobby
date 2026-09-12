@@ -401,7 +401,6 @@ function SquadDetail({
   onReject: (requestId: string) => Promise<void>;
 }) {
   const bios = profiles.filter((profile) => squad.members.some((member) => member.id === profile.userId));
-  const past = bios.flatMap((profile) => profile.pastEvents);
   return (
     <div className="flex h-full flex-col">
       <div className="px-3 py-3">
@@ -421,11 +420,13 @@ function SquadDetail({
       <div className="px-3 py-2">
         <p className="micro text-white/40">Past events</p>
         <ul className="mt-2 space-y-1">
-          {past.map((item) => (
-            <li key={item.id} className="text-[12px] text-white/60">
-              {item.name}
-            </li>
-          ))}
+          {bios.flatMap((profile) =>
+            profile.pastEvents.map((item) => (
+              <li key={`${profile.userId}:${item.id}`} className="text-[12px] text-white/60">
+                {item.name}
+              </li>
+            )),
+          )}
         </ul>
       </div>
       <div className="px-3 py-2">
