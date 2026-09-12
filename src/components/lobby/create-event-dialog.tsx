@@ -70,14 +70,18 @@ export function CreateEventDialog({ open, onOpenChange, onCreated }: CreateEvent
                 Follow the steps below to get a link your guest can use from anywhere.
               </DialogDescription>
             </DialogHeader>
-            <EventShareWizard event={created.event} joinUrl={created.joinUrl} />
+            <EventShareWizard
+              event={created.event}
+              joinUrl={created.joinUrl}
+              onDone={() => onOpenChange(false)}
+            />
           </>
         ) : (
           <form onSubmit={(event) => void submit(event)} className="space-y-3">
             <DialogHeader>
               <DialogTitle className="text-[14px]">Open a Grok Bot lobby</DialogTitle>
               <DialogDescription className="text-[12px] text-white/50">
-                You host. After create, you get a shareable join link immediately.
+                Name your lobby, then follow the steps to share it with guests.
               </DialogDescription>
             </DialogHeader>
             <label className="block">
