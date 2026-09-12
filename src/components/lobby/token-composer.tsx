@@ -96,7 +96,7 @@ export function TokenShareToggle({
           <span className="micro text-white/40">Share level</span>
           <Select value={level} onValueChange={(value) => void changeLevel(value as ShareLevel)}>
             <SelectTrigger size="sm" className="mt-1 h-7 border-[#262626] bg-[#111] text-[11px]">
-              <SelectValue />
+              <SelectValue>{shareLevelCopy(level)}</SelectValue>
             </SelectTrigger>
             <SelectContent className="bg-[#161616]">
               {SHARE_LEVELS.map((item) => (
