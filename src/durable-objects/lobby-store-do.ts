@@ -70,6 +70,21 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
     const lobby = await this.ensureLoaded();
     this.attachEmitter(lobby);
 
+    try {
+      return await this.runDispatch(lobby, op, payload);
+    } catch (error) {
+      if (error instanceof LobbyError) {
+        return { __lobbyError: { message: error.message, status: error.status } };
+      }
+      throw error;
+    }
+  }
+
+  private async runDispatch(
+    lobby: LobbyMemory,
+    op: string,
+    payload: Record<string, unknown>,
+  ): Promise<unknown> {
     switch (op) {
       case "snapshot":
         return lobby.snapshot(payload as Parameters<LobbyMemory["snapshot"]>[0]);
@@ -172,6 +187,7 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
         throw new LobbyError(`Unknown lobby operation: ${op}`, 400);
     }
   }
+
 
   private async checkRateLimit(key: string, limit: number, windowMs: number): Promise<boolean> {
     const now = Date.now();

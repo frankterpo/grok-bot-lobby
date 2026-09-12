@@ -149,8 +149,9 @@ export function proposeExchange(
   if (input.toSquadId && !stored.squads.some((squad) => squad.id === input.toSquadId)) {
     throw new LobbyError("That squad isn't here.", 404);
   }
+  const attendee = stored.attendees.find((person) => person.id === input.fromBotId);
   const current = store.tokens.get(tokenKey(input.eventId, input.fromBotId));
-  const label = (input.taskLabel ?? current?.taskLabel ?? "").trim();
+  const label = (input.taskLabel ?? current?.taskLabel ?? attendee?.botTaskLabel ?? "").trim();
   if (!label) {
     throw new LobbyError("Sync a task token before proposing an exchange.", 400);
   }

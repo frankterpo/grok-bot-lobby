@@ -305,15 +305,27 @@ export function LobbyApp() {
     selection.kind === "you" || selection.kind === "attendee" ? selection.attendeeId : null;
   const selectedSquadId = selection.kind === "squad" ? selection.squadId : null;
 
+  async function applyLobbyMutation(path: string, body: Record<string, unknown>): Promise<void> {
+    const response = await lobbyFetch(path, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string };
+      setError(payload.error ?? "Lobby action failed.");
+      return;
+    }
+    const next = (await response.json()) as LobbySnapshot;
+    setSnapshot(next);
+    setError(null);
+  }
+
   async function approveExchange(requestId: string): Promise<void> {
     const liveEventId = snapshot?.event?.id;
     if (!liveEventId) {
       return;
     }
-    await lobbyFetch("/api/token-exchange/approve", {
-      method: "POST",
-      body: JSON.stringify({ eventId: liveEventId, requestId }),
-    });
+    await applyLobbyMutation("/api/token-exchange/approve", { eventId: liveEventId, requestId });
   }
 
   async function rejectExchange(requestId: string): Promise<void> {
@@ -321,10 +333,7 @@ export function LobbyApp() {
     if (!liveEventId) {
       return;
     }
-    await lobbyFetch("/api/token-exchange/reject", {
-      method: "POST",
-      body: JSON.stringify({ eventId: liveEventId, requestId }),
-    });
+    await applyLobbyMutation("/api/token-exchange/reject", { eventId: liveEventId, requestId });
   }
 
   return (
@@ -353,6 +362,18 @@ export function LobbyApp() {
         }}
       />
       <div className="relative flex min-w-0 flex-1 flex-col">
+        {error ? (
+          <div className="flex items-center justify-between gap-3 border-b border-red-900/50 bg-red-950/40 px-4 py-2 text-[11px] text-red-200">
+            <p>{error}</p>
+            <button
+              type="button"
+              className="shrink-0 text-red-300/70 hover:text-red-200"
+              onClick={() => setError(null)}
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
         <header className="flex items-center justify-between border-b border-[#262626] px-4 py-2">
           <div>
             <p className="micro text-white/40">Grok Bot Lobby</p>
@@ -459,34 +480,31 @@ export function LobbyApp() {
             )
           }
           onInvite={async (attendeeId) => {
-            await lobbyFetch("/api/squads/invite", {
-              method: "POST",
-              body: JSON.stringify({ eventId: snapshot.event?.id, attendeeId }),
+            await applyLobbyMutation("/api/squads/invite", {
+              eventId: snapshot.event?.id,
+              attendeeId,
             });
           }}
           onRequest={async (squadId) => {
-            await lobbyFetch("/api/squads/request", {
-              method: "POST",
-              body: JSON.stringify({ eventId: snapshot.event?.id, squadId }),
+            await applyLobbyMutation("/api/squads/request", {
+              eventId: snapshot.event?.id,
+              squadId,
             });
           }}
           onLeave={async (squadId) => {
-            await lobbyFetch("/api/squads/leave", {
-              method: "POST",
-              body: JSON.stringify({ eventId: snapshot.event?.id, squadId }),
+            await applyLobbyMutation("/api/squads/leave", {
+              eventId: snapshot.event?.id,
+              squadId,
             });
           }}
           onPropose={async (input) => {
             if (!snapshot.event || !snapshot.session.userId) {
               return;
             }
-            await lobbyFetch("/api/token-exchange/propose", {
-              method: "POST",
-              body: JSON.stringify({
-                eventId: snapshot.event.id,
-                fromBotId: snapshot.session.userId,
-                ...input,
-              }),
+            await applyLobbyMutation("/api/token-exchange/propose", {
+              eventId: snapshot.event.id,
+              fromBotId: snapshot.session.userId,
+              ...input,
             });
           }}
           onApprove={approveExchange}
