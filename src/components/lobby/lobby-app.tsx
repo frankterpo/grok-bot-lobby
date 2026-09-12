@@ -30,6 +30,7 @@ import {
   type LobbySnapshot,
   type Selection,
   type ShareLevel,
+  presenceState,
 } from "@/lib/domain";
 import { CHECKLIST_COPY } from "@/lib/onboarding";
 
@@ -163,6 +164,16 @@ export function LobbyApp() {
     }
     return snapshot.event.attendees.find((attendee) => attendee.id === snapshot.session.userId) ?? null;
   }, [snapshot]);
+
+  const profileAnimated = useMemo(() => {
+    if (!currentAttendee || !snapshot) {
+      return false;
+    }
+    const record = snapshot.presence.find((item) => item.userId === currentAttendee.id);
+    const state = record ? presenceState(record, now) : "offline";
+    const token = snapshot.tokens.find((item) => item.botId === currentAttendee.id);
+    return state === "active" && token?.status === "working";
+  }, [currentAttendee, snapshot, now]);
 
   const solo = useMemo(() => {
     if (!snapshot?.event) {
@@ -308,6 +319,7 @@ export function LobbyApp() {
         joinUrl={snapshot.joinUrl}
         actor={actor}
         currentAttendee={currentAttendee}
+        profileAnimated={profileAnimated}
         onSelect={(id) => {
           setEventId(id);
           void load(id);
