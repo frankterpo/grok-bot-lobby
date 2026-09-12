@@ -157,11 +157,24 @@ export function LobbyApp() {
       }
     : null;
 
+  const currentAttendee = useMemo(() => {
+    if (!snapshot?.event || !snapshot.session.userId) {
+      return null;
+    }
+    return snapshot.event.attendees.find((attendee) => attendee.id === snapshot.session.userId) ?? null;
+  }, [snapshot]);
+
   const solo = useMemo(() => {
     if (!snapshot?.event) {
       return [];
     }
-    const ungrouped = snapshot.event.attendees.filter((attendee) => !attendee.squadId);
+    const ungrouped = snapshot.event.attendees.filter(
+      (attendee) =>
+        !attendee.squadId &&
+        (attendee.id === HOST_USER_ID ||
+          !attendee.id.startsWith("demo_") ||
+          snapshot.presence.find((item) => item.userId === attendee.id)?.claimed),
+    );
     const rank = (id: string): number => {
       if (id === snapshot.session.userId) {
         return 0;
@@ -294,11 +307,19 @@ export function LobbyApp() {
         activeEventId={snapshot.event?.id ?? null}
         joinUrl={snapshot.joinUrl}
         actor={actor}
+        currentAttendee={currentAttendee}
         onSelect={(id) => {
           setEventId(id);
           void load(id);
         }}
         onCreate={() => setCreateOpen(true)}
+        onProfileClick={() => {
+          if (!snapshot.session.userId) {
+            return;
+          }
+          setPanelCollapsed(false);
+          setSelection({ kind: "you", attendeeId: snapshot.session.userId });
+        }}
       />
       <div className="relative flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-[#262626] px-4 py-2">

@@ -107,24 +107,6 @@ export function buildSeed(): SeedBundle {
       task: "Hosting CoLoop",
       luma: "https://lu.ma/u/francisco",
     }),
-    attendee({
-      id: "demo_maya",
-      name: "Maya",
-      color: coral,
-      handle: "maya",
-      photo: "/avatars/maya.svg",
-      task: "Pairing on auth",
-    }),
-    attendee({ id: "demo_jules", name: "Jules", color: coral, handle: "jules" }),
-    attendee({ id: "demo_ari", name: "Ari", color: coral }),
-    attendee({ id: "demo_kenji", name: "Kenji", color: coral }),
-    attendee({ id: "demo_noor", name: "Noor", color: coral }),
-    attendee({ id: "demo_sam", name: "Sam", color: coral }),
-    attendee({ id: "demo_riley", name: "Riley", color: coral }),
-    attendee({ id: "demo_priya", name: "Priya", color: coral }),
-    attendee({ id: "demo_owen", name: "Owen", color: coral }),
-    attendee({ id: "demo_sage", name: "Sage", color: coral }),
-    attendee({ id: "demo_luca", name: "Luca", color: coral }),
   ];
 
   const group1: Attendee[] = [
@@ -221,14 +203,6 @@ export function buildSeed(): SeedBundle {
       timestamp: now,
       shareLevel: "full",
     },
-    {
-      botId: "demo_maya",
-      eventId: SEED_EVENT_ID,
-      taskLabel: "Pairing on auth",
-      status: "working",
-      timestamp: now,
-      shareLevel: "label+status",
-    },
   ];
 
   const profiles: LumaProfile[] = [
@@ -238,9 +212,6 @@ export function buildSeed(): SeedBundle {
       [PAST.coloop, PAST.agents, PAST.cursor],
       { twitter: "francisco", linkedin: "francisco" },
     ),
-    profile("demo_maya", "Auth, sessions, and anything that should have been a cookie.", [PAST.coloop, PAST.cursor], {
-      twitter: "maya",
-    }),
     profile("demo_nico", "Keeps Group 1 on the rails.", [PAST.agents]),
     profile("demo_cass", "Keeps Group 2 loud and on time.", [PAST.coloop]),
   ];
@@ -252,14 +223,6 @@ export function buildSeed(): SeedBundle {
         eventId: SEED_EVENT_ID,
         lastHeartbeat: now,
         claimed: true,
-      };
-    }
-    if (person.id === "demo_maya") {
-      return {
-        userId: person.id,
-        eventId: SEED_EVENT_ID,
-        lastHeartbeat: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-        claimed: false,
       };
     }
     return {
