@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Inbox, Plus, Search } from "lucide-react";
 
 import { EventCodeChip } from "@/components/lobby/event-code-chip";
 import { GrokBotMark } from "@/components/lobby/grok-bot-mark";
-import { OutstandingTasksInbox } from "@/components/lobby/onboarding-screen";
+import {
+  OutstandingTasksList,
+  outstandingTasksRemaining,
+} from "@/components/lobby/onboarding-screen";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Actor, Attendee, ChecklistItem, Event } from "@/lib/domain";
 import { formatEventDate } from "@/lib/format";
 import { canCreateEvent, canShareEvent } from "@/lib/policy";
@@ -38,6 +42,7 @@ export function LobbySidebar({
   onProfileClick,
 }: LobbySidebarProps) {
   const [query, setQuery] = useState("");
+  const remainingTasks = outstandingTasksRemaining(checklistItems);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -50,6 +55,8 @@ export function LobbySidebar({
         event.eventCode.toLowerCase().includes(needle),
     );
   }, [events, query]);
+
+  const showFooter = Boolean(currentAttendee && actor.userId) || checklistItems.length > 0;
 
   return (
     <aside className="flex w-[280px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
@@ -122,22 +129,61 @@ export function LobbySidebar({
         )}
       </nav>
 
-      <OutstandingTasksInbox items={checklistItems} />
+      {showFooter ? (
+        <div className="flex shrink-0 items-stretch border-t border-sidebar-border">
+          {currentAttendee && actor.userId ? (
+            <button
+              type="button"
+              onClick={onProfileClick}
+              className="lobby-event-row flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent"
+            >
+              <GrokBotMark
+                color={currentAttendee.botColor ?? "#f97066"}
+                size={28}
+                animated={profileAnimated}
+                restSeed={currentAttendee.id}
+              />
+              <span className="min-w-0 truncate text-[12px] text-white/85">{currentAttendee.name}</span>
+            </button>
+          ) : (
+            <div className="min-w-0 flex-1" />
+          )}
 
-      {currentAttendee && actor.userId ? (
-        <button
-          type="button"
-          onClick={onProfileClick}
-          className="lobby-event-row flex shrink-0 items-center gap-2 border-t border-sidebar-border px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent"
-        >
-          <GrokBotMark
-            color={currentAttendee.botColor ?? "#f97066"}
-            size={28}
-            animated={profileAnimated}
-            restSeed={currentAttendee.id}
-          />
-          <span className="min-w-0 truncate text-[12px] text-white/85">{currentAttendee.name}</span>
-        </button>
+          <Popover>
+            <PopoverTrigger
+              render={
+                <button
+                  type="button"
+                  className="relative flex shrink-0 items-center justify-center px-3 py-2.5 text-white/45 transition-colors hover:bg-sidebar-accent hover:text-white/70"
+                  aria-label={
+                    remainingTasks > 0
+                      ? `Outstanding tasks, ${remainingTasks} remaining`
+                      : "Outstanding tasks"
+                  }
+                />
+              }
+            >
+              <Inbox className="size-4" strokeWidth={1.5} />
+              {remainingTasks > 0 ? (
+                <span className="absolute top-1.5 right-1.5 grid min-w-[14px] place-items-center rounded-full bg-[#f59e0b] px-1 text-[9px] font-medium leading-none text-[#0d0d0d]">
+                  {remainingTasks}
+                </span>
+              ) : null}
+            </PopoverTrigger>
+            <PopoverContent
+              side="top"
+              align="end"
+              sideOffset={4}
+              className="w-[260px] border-[#262626] bg-[#111] p-3 text-white/80 shadow-lg ring-[#262626]"
+            >
+              <p className="micro mb-2 text-white/40">
+                Outstanding tasks
+                {remainingTasks > 0 ? <span className="text-sidebar-primary"> · {remainingTasks}</span> : null}
+              </p>
+              <OutstandingTasksList items={checklistItems} />
+            </PopoverContent>
+          </Popover>
+        </div>
       ) : null}
     </aside>
   );

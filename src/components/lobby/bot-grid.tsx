@@ -68,7 +68,7 @@ export function BotGrid({
         {solo.length === 0 ? (
           <p className="text-[12px] text-white/40">No bots in the room yet. Join via Grok Bot / join-lobby.</p>
         ) : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+          <div className="grid auto-rows-fr grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 [&>*]:min-w-0">
             {visible.map((attendee) => (
               <BotCard
                 key={attendee.id}

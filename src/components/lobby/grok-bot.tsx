@@ -17,7 +17,7 @@ export function GrokBot({
 }: GrokBotProps) {
   const px = size === "lg" ? 56 : size === "sm" ? 28 : 44;
   const color = attendee.botColor ?? "#f97066";
-  const showRing = youRing ?? attendee.isCurrentUser;
+  const showRing = youRing ?? false;
   const photo = attendee.botAvatarUrl;
 
   return (

@@ -21,25 +21,22 @@ export function BotCard({ attendee, token, presence, selected, now, onSelect }: 
       type="button"
       onClick={onSelect}
       className={cn(
-        "group flex flex-col items-center gap-2 rounded-lg border p-2 text-center transition-colors",
+        "group flex h-full min-h-[100px] w-full min-w-0 flex-col items-center justify-center gap-1.5 rounded-lg border p-2 text-center transition-colors",
         selected
-          ? "border-[#f59e0b] bg-[#161616]"
+          ? "border-white/25 bg-[#161616]"
           : "border-transparent hover:border-[#262626] hover:bg-[#161616]",
       )}
     >
-      <GrokBot
-        attendee={attendee}
-        size="lg"
-        youRing={attendee.isCurrentUser}
-        animated={animated}
-      />
+      <div className="flex w-[min(100%,56px)] shrink-0 items-center justify-center">
+        <GrokBot attendee={attendee} size="lg" animated={animated} />
+      </div>
       {attendee.isCurrentUser ? (
-        <div className="flex max-w-[72px] items-center justify-center gap-1">
+        <div className="flex w-full min-w-0 items-center justify-center gap-1 px-0.5">
           <PresenceDot state={state} />
           <span className="truncate text-[11px] text-white/80">{attendee.name}</span>
         </div>
       ) : (
-        <span className="max-w-[72px] truncate text-[11px] text-white/80">{attendee.name}</span>
+        <span className="w-full min-w-0 truncate px-0.5 text-[11px] text-white/80">{attendee.name}</span>
       )}
     </button>
   );
