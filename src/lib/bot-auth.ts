@@ -21,8 +21,10 @@ export async function actorForBridge(
   const stored = eventId
     ? lobby.getStored(eventId)
     : eventCode
-      ? lobby.getByCode(eventCode)
-      : lobby.getStored("event_coloop");
+      ? lobby.getByCode(String(eventCode))
+      : lobby.listEvents().length === 1
+        ? lobby.getStored(lobby.listEvents()[0]!.id)
+        : null;
 
   if (botId) {
     return lobby.actor("attendee", botId, stored);

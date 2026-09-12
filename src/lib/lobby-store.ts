@@ -30,7 +30,6 @@ import {
   type TokenStatus,
   BOT_COLORS,
   HOST_USER_ID,
-  SEED_EVENT_ID,
   assertNever,
   createEventCode,
   createId,
@@ -152,7 +151,9 @@ export class LobbyMemory {
       ? this.getStored(args.eventId)
       : args.code
         ? this.getByCode(args.code)
-        : this.getStored(SEED_EVENT_ID);
+        : this.events.size === 1
+          ? ([...this.events.values()][0] ?? null)
+          : null;
     const event = stored ? this.presentEvent(stored, args.actor.userId) : null;
     const eventId = stored?.id ?? null;
     const tokens = eventIdTokens(this.tokens, eventId)

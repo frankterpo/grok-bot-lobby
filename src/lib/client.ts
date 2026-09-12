@@ -1,4 +1,4 @@
-import { HOST_USER_ID, SEED_EVENT_CODE, type IdentitySlot, type LobbySnapshot } from "@/lib/domain";
+import { HOST_USER_ID, type IdentitySlot, type LobbySnapshot } from "@/lib/domain";
 import { SLOT_HEADER } from "@/lib/identity";
 
 export const SLOT_STORAGE_KEY = "gbl_as";
@@ -55,11 +55,11 @@ export function streamUrl(eventId: string): string {
   return `/api/lobby/stream?${params.toString()}`;
 }
 
-export function defaultJoinCode(): string {
+export function rememberedJoinCode(): string | null {
   if (typeof window === "undefined") {
-    return SEED_EVENT_CODE;
+    return null;
   }
-  return window.sessionStorage.getItem(EVENT_STORAGE_KEY) ?? SEED_EVENT_CODE;
+  return window.sessionStorage.getItem(EVENT_STORAGE_KEY);
 }
 
 export function rememberEventCode(code: string): void {

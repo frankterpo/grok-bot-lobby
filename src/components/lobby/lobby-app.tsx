@@ -13,6 +13,7 @@ import { PermissionsWalkthrough } from "@/components/lobby/permissions-walkthrou
 import { SessionSwitcher } from "@/components/lobby/session-switcher";
 import { ShareLink } from "@/components/lobby/share-link";
 import { TokenExchanges } from "@/components/lobby/token-exchanges";
+import { Button } from "@/components/ui/button";
 import {
   fetchSnapshot,
   lobbyFetch,
@@ -83,6 +84,15 @@ export function LobbyApp() {
     }
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (loading || !snapshot || createOpen || !onboarded) {
+      return;
+    }
+    if (readSlot() === "you" && snapshot.events.length === 0) {
+      setCreateOpen(true);
+    }
+  }, [loading, snapshot, createOpen, onboarded]);
 
   useEffect(() => {
     if (!eventId) {
@@ -231,7 +241,7 @@ export function LobbyApp() {
       <>
         <OnboardingScreen
           items={snapshot?.checklist ?? CHECKLIST_COPY.map((item, index) => ({ ...item, step: index + 1, done: false }))}
-          onOpenSeed={() => {
+          onOpenLobby={() => {
             window.sessionStorage.setItem(ONBOARD_STORAGE_KEY, "1");
             setOnboarded(true);
             writeSlot("you");
@@ -398,7 +408,19 @@ export function LobbyApp() {
             onSelectSquad={(id) => setSelection({ kind: "squad", squadId: id })}
           />
         ) : (
-          <div className="flex flex-1 items-center justify-center text-white/40">Open or create an event.</div>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/40">
+            <p>No event selected.</p>
+            {canShareEvent(actor) ? (
+              <Button
+                type="button"
+                size="sm"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => setCreateOpen(true)}
+              >
+                Create event
+              </Button>
+            ) : null}
+          </div>
         )}
         {panelCollapsed ? <PanelExpand onClick={() => setPanelCollapsed(false)} /> : null}
       </div>

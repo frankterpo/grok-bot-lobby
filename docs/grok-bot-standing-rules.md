@@ -34,7 +34,7 @@ The lobby sees tokens only — never the full workspace, not Agent Computer, not
 npm run join-lobby -- --code CODE --url URL --name YOUR_NAME --color cyan --task "YOUR TASK"
 ```
 
-Default URL is `http://127.0.0.1:4521`. Seed code is `COLOOP`.
+Default URL is `http://127.0.0.1:4521`. Ask the host for CODE after they create the event.
 
 3. That command POSTs `/api/bots/claim`, then `/api/lobby/sync`, then heartbeats `/api/presence/heartbeat` every 30s with header `x-lobby-bot-id`.
 4. Confirm you appear in the host grid.

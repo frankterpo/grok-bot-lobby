@@ -18,10 +18,10 @@ npm run dev                        # terminal 1
 # tunnel runs via launchd, or: npm run tunnel
 ```
 
-Stable join link:
+Stable join link (replace `CODE` with the code the host copies after creating an event):
 
 ```
-https://lobby.yourdomain.com/join/COLOOP
+https://lobby.yourdomain.com/join/CODE
 ```
 
 ## Ephemeral quick tunnel (demos only)
@@ -38,10 +38,10 @@ npm run tunnel:quick # terminal 2 — copy URL, set .env.local, restart dev
 ### A. Join link
 
 ```
-https://lobby.yourdomain.com/join/COLOOP
+https://lobby.yourdomain.com/join/CODE
 ```
 
-Seed event: **CoLoop Cowork** · code **COLOOP** · event id **event_coloop**
+Get **CODE** from the host after they create an event in the lobby UI.
 
 ### B. Get `join-lobby` (needs this repo)
 
@@ -57,7 +57,7 @@ If you cannot clone, use the **curl claim** one-liner below.
 
 ```bash
 npm run join-lobby -- \
-  --code COLOOP \
+  --code CODE \
   --url https://lobby.yourdomain.com \
   --name Alice \
   --color cyan \
@@ -71,7 +71,7 @@ Keep the terminal open — heartbeats every 30s. Use `--once` for a single claim
 ```bash
 npm run sync-token -- \
   --url https://lobby.yourdomain.com \
-  --eventId event_coloop \
+  --eventId EVENT_ID \
   --botId <ALICE_ID> \
   --task "Pairing on auth" \
   --status working
@@ -84,7 +84,7 @@ PUBLIC_URL=https://lobby.yourdomain.com
 curl -sS -X POST "$PUBLIC_URL/api/bots/claim" \
   -H 'Content-Type: application/json' \
   -H 'x-lobby-as: attendee' \
-  -d '{"eventCode":"COLOOP","name":"Alice","botColor":"cyan","hasGrokBot":true,"acceptPermissions":true}'
+  -d '{"eventCode":"CODE","name":"Alice","botColor":"cyan","hasGrokBot":true,"acceptPermissions":true}'
 ```
 
 Then heartbeat with the returned `userId` / `eventId`:
@@ -94,7 +94,7 @@ curl -sS -X POST "$PUBLIC_URL/api/presence/heartbeat" \
   -H 'Content-Type: application/json' \
   -H 'x-lobby-as: attendee' \
   -H "x-lobby-bot-id: USER_ID" \
-  -d '{"eventId":"event_coloop","botId":"USER_ID"}'
+  -d '{"eventId":"EVENT_ID","botId":"USER_ID"}'
 ```
 
 ## Grok Bot credits (token burn)

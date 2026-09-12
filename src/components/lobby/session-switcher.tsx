@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { defaultJoinCode, writeSlot } from "@/lib/client";
+import { rememberedJoinCode, writeSlot } from "@/lib/client";
 import type { IdentitySlot, SessionView } from "@/lib/domain";
 
 type SessionSwitcherProps = {
@@ -23,7 +23,8 @@ export function SessionSwitcher({ session }: SessionSwitcherProps) {
   function go(slot: IdentitySlot): void {
     writeSlot(slot);
     if (slot === "attendee" && !session.claimed) {
-      router.push(`/join/${defaultJoinCode()}`);
+      const code = rememberedJoinCode();
+      router.push(code ? `/join/${code}` : "/join");
       return;
     }
     router.push(slot === "you" ? "/?as=you" : "/?as=attendee");

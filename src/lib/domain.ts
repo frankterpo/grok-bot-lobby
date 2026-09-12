@@ -184,8 +184,6 @@ export type Selection =
 export const HEARTBEAT_MS = 30_000;
 export const STALE_AFTER_MS = 90_000;
 
-export const SEED_EVENT_CODE = "COLOOP";
-export const SEED_EVENT_ID = "event_coloop";
 export const HOST_USER_ID = "user_francisco";
 
 export const CLAIM_COLORS = [

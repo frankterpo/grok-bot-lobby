@@ -54,15 +54,23 @@ async function postJson(url: string, path: string, body: unknown, botId?: string
 
 async function main(): Promise<void> {
   const url = (arg("url") ?? "http://127.0.0.1:4521").replace(/\/$/, "");
-  const code = (arg("code") ?? "COLOOP").toUpperCase();
+  const codeArg = arg("code");
   const name = arg("name");
   const color = arg("color") ?? "cyan";
   const task = arg("task");
   const status = arg("status") ?? "working";
   const shareLevel = arg("shareLevel") ?? "label+status";
   const once = hasFlag("once");
+  if (!codeArg) {
+    fail(
+      "Need --code from the host. Example: join-lobby --code ABC123 --url http://127.0.0.1:4521 --name Alice --color cyan",
+    );
+  }
+  const code = codeArg.toUpperCase();
   if (!name) {
-    fail("Need --name. Example: join-lobby --code COLOOP --url http://127.0.0.1:4521 --name Alice --color cyan");
+    fail(
+      "Need --name. Example: join-lobby --code ABC123 --url http://127.0.0.1:4521 --name Alice --color cyan",
+    );
   }
 
   const claimed = (await postJson(url, "/api/bots/claim", {

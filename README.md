@@ -9,49 +9,24 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:4521](http://127.0.0.1:4521) (`?as=you`). Port **4521**. Create an event (or Open host lobby for seeded **CoLoop Cowork** / `COLOOP`). Share **code + URL** immediately.
+Open [http://127.0.0.1:4521](http://127.0.0.1:4521) (`?as=you`). Port **4521**. **Create an event** — you get a unique code and join URL immediately. Share **code + URL** with guests.
 
 No Clerk / Supabase / Luma credentials required.
 
-## Remote join (persistent Cloudflare Tunnel)
+### Optional demo seed (local dev)
 
-`127.0.0.1` is loopback — remote Grok Bot users cannot reach it. Use a **named tunnel** with a stable hostname (not ephemeral `trycloudflare.com` quick tunnels).
-
-**One-time setup**
+To preload a sample **CoLoop Cowork** event (`COLOOP`) with demo squads:
 
 ```bash
-npm run tunnel:setup -- --hostname lobby.yourdomain.com --zone yourdomain.com
-cp .env.local.example .env.local   # set LOBBY_PUBLIC_URL + NEXT_PUBLIC_LOBBY_PUBLIC_URL
-npm run tunnel:install             # macOS launchd — survives reboot
+SEED_DEMO=1 npm run dev
 ```
 
-**Daily host**
-
-```bash
-npm run dev      # terminal 1 — lobby state lives here
-# tunnel via launchd, or: npm run tunnel   # terminal 2
-```
-
-Stable join link (example): `https://lobby.yourdomain.com/join/COLOOP`
-
-Full guide: [`docs/persistent-tunnel.md`](docs/persistent-tunnel.md) · attendee playbook: [`docs/remote-join.md`](docs/remote-join.md)
-
-**Ephemeral demo only:** `npm run tunnel:quick` (new URL each run — not for long-term use)
-
-**Remote attendee (Alice)** — clone this repo, then:
-
-```bash
-npm run join-lobby -- --code COLOOP --url https://lobby.yourdomain.com --name Alice --color cyan --task "Setting up event credits"
-```
-
-Seed: **COLOOP** / **event_coloop**. Keep the terminal open (30s heartbeats). Curl-only join documented in `docs/remote-join.md` if clone is not possible.
-
-**Credits:** `join-lobby` / `sync-token` npm scripts are HTTP only — they do **not** burn Grok Bot chat credits. Chat babysitting does.
+Off by default — fresh installs start with an empty event list.
 
 ## 7-step Grok Bot join checklist
 
 1. Install Grok Bot and sign in.
-2. Host copies event **code** + lobby **URL**.
+2. Host creates an event and copies **code** + lobby **URL**.
 3. Tell your bot: *Join lobby `CODE` at `<URL>`*.
 4. Bot claims via `join-lobby` (permissions in standing rules).
 5. Confirm both bots are in the grid.
@@ -62,36 +37,34 @@ Standing rules (paste into `grokbot.py create --description`): [`docs/grok-bot-s
 
 ## Two-user demo (you + volunteer, or two terminals)
 
-Seed: **CoLoop Cowork** · code **COLOOP** · join link `http://127.0.0.1:4521/join/COLOOP`
-
 **Host (Francisco) — browser**
 
 1. `npm run dev`
-2. Open [http://127.0.0.1:4521/?as=you](http://127.0.0.1:4521/?as=you) → **Open host lobby**
-3. Click the **COLOOP · copy join link** chip (copies full `/join/COLOOP` URL)
-4. Tell the guest: *Join lobby COLOOP at http://127.0.0.1:4521*
+2. Open [http://127.0.0.1:4521/?as=you](http://127.0.0.1:4521/?as=you) → **Create event** (name + date)
+3. Copy the generated **CODE · copy join link** chip (full `/join/CODE` URL)
+4. Tell the guest: *Join lobby CODE at http://127.0.0.1:4521*
 
 **Attendee (Alice) — terminal in this repo**
 
 ```bash
 cd /path/to/grok-bot-lobby
-npm run join-lobby -- --code COLOOP --url http://127.0.0.1:4521 --name Alice --color cyan --task "Setting up event credits"
+npm run join-lobby -- --code CODE --url http://127.0.0.1:4521 --name Alice --color cyan --task "Setting up event credits"
 ```
 
-Alice appears live in the grid (SSE). Keep the terminal open — it heartbeats every 30s.
+Replace `CODE` with the code from step 3. Alice appears live in the grid (SSE). Keep the terminal open — it heartbeats every 30s.
 
 **Sync a new task token (Alice, after join)**
 
 ```bash
-npm run sync-token -- --url http://127.0.0.1:4521 --eventId event_coloop --botId <ALICE_ID> --task "Pairing on auth" --status working
+npm run sync-token -- --url http://127.0.0.1:4521 --eventId EVENT_ID --botId <ALICE_ID> --task "Pairing on auth" --status working
 ```
 
-`<ALICE_ID>` is printed in the join-lobby JSON (`userId` field).
+`<ALICE_ID>` is printed in the join-lobby JSON (`userId` field). `EVENT_ID` is in the same JSON.
 
 **Terminal C — Bob**
 
 ```bash
-npm run join-lobby -- --code COLOOP --url http://127.0.0.1:4521 --name Bob --color yellow --task "Pairing on auth"
+npm run join-lobby -- --code CODE --url http://127.0.0.1:4521 --name Bob --color yellow --task "Pairing on auth"
 ```
 
 Both appear live (SSE). Host selects Alice → **Invite to Group**. Select a squad → **Request to join** / **Leave**.
@@ -99,7 +72,7 @@ Both appear live (SSE). Host selects Alice → **Invite to Group**. Select a squ
 Token exchange:
 
 ```bash
-npm run propose-exchange -- --url http://127.0.0.1:4521 --eventId event_coloop --fromBotId <ALICE_ID> --toBotId <BOB_ID> --task "Setting up event credits"
+npm run propose-exchange -- --url http://127.0.0.1:4521 --eventId EVENT_ID --fromBotId <ALICE_ID> --toBotId <BOB_ID> --task "Setting up event credits"
 ```
 
 Host (or Bob) **Approve** / **Reject** in the detail panel. Only then does the token show on the recipient card (`in: …`).
@@ -126,10 +99,10 @@ python3 ~/.agents/skills/grok-bot/scripts/grokbot.py create \
 
 | Symptom | Fix |
 | --- | --- |
-| Blank grid | Host must Open lobby. join-lobby must hit the same origin/port. |
+| Blank grid | Host must create an event first. join-lobby must hit the same origin/port with the host's code. |
 | Token not updating | Same `eventId`. SSE `/api/lobby/stream`. Pending exchanges are hidden until Approve. |
 | Both sessions showing YOU | Host `?as=you`. Bots use `x-lobby-bot-id`, not the website form. |
-| Bad event code | Seed is `COLOOP`. Copy the host card. |
+| Bad event code | Copy the code from the host's event card after they create the lobby. |
 | Claim becomes Francisco | Bridge uses attendee slot + `x-lobby-bot-id`. Don't omit `--name`. |
 
 Heartbeat 30s. Quiet → **no activity**. Never claimed → **bot not active**. Offline cards stay.

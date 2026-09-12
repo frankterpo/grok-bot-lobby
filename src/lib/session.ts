@@ -39,7 +39,13 @@ export async function actorFromRequest(
   const slot = slotFromRequest(request);
   const userId = await userIdForSlot(slot);
   const lobby = getLobby();
-  const stored = eventId ? lobby.getStored(eventId) : code ? lobby.getByCode(code) : lobby.getStored("event_coloop");
+  const stored = eventId
+    ? lobby.getStored(eventId)
+    : code
+      ? lobby.getByCode(code)
+      : lobby.listEvents().length === 1
+        ? lobby.getStored(lobby.listEvents()[0]!.id)
+        : null;
   return lobby.actor(slot, userId, stored);
 }
 

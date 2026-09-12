@@ -96,7 +96,11 @@ export function LobbySidebar({
 
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2">
         {filtered.length === 0 ? (
-          <p className="px-2 py-3 text-[11px] text-white/35">No events match.</p>
+          <p className="px-2 py-3 text-[11px] text-white/35">
+            {events.length === 0
+              ? "No events yet. Create one with +."
+              : "No events match."}
+          </p>
         ) : (
           filtered.map((event) => {
             const active = event.id === activeEventId;

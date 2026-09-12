@@ -6,20 +6,20 @@ import { cn } from "@/lib/utils";
 
 type OnboardingScreenProps = {
   items: ChecklistItem[];
-  onOpenSeed: () => void;
+  onOpenLobby: () => void;
   onCreate: () => void;
   onJoin: () => void;
 };
 
-export function OnboardingScreen({ items, onOpenSeed, onCreate, onJoin }: OnboardingScreenProps) {
+export function OnboardingScreen({ items, onOpenLobby, onCreate, onJoin }: OnboardingScreenProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0d0d0d] px-4">
       <div className="w-full max-w-md rounded-lg border border-[#262626] bg-[#111] p-5">
         <p className="micro text-white/45">Host display</p>
         <h1 className="mt-2 text-[16px] font-medium text-white/90">Grok Bot Lobby</h1>
         <p className="mt-2 text-[12px] leading-relaxed text-white/50">
-          Attendees join through Grok Bot. This screen is the shared grid you project. Tell them: Join lobby COLOOP
-          at the URL.
+          Attendees join through Grok Bot. Create an event first — you get a unique code and join URL. Tell guests:
+          Join lobby CODE at the URL.
         </p>
         <ol className="mt-4 space-y-2">
           {items.map((item) => (
@@ -40,12 +40,12 @@ export function OnboardingScreen({ items, onOpenSeed, onCreate, onJoin }: Onboar
           <Button
             type="button"
             className="bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={onOpenSeed}
+            onClick={onCreate}
           >
-            Open host lobby
-          </Button>
-          <Button type="button" variant="outline" className="border-[#262626]" onClick={onCreate}>
             Create event
+          </Button>
+          <Button type="button" variant="outline" className="border-[#262626]" onClick={onOpenLobby}>
+            Open lobby
           </Button>
           <button type="button" className="text-[11px] text-white/35 underline-offset-2 hover:underline" onClick={onJoin}>
             Mirror / fallback join

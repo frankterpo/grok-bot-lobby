@@ -1,8 +1,6 @@
 import {
   BOT_COLORS,
   HOST_USER_ID,
-  SEED_EVENT_CODE,
-  SEED_EVENT_ID,
   type Attendee,
   type Event,
   type LumaProfile,
@@ -30,6 +28,26 @@ export type SeedBundle = {
   claimed: Array<[string, string[]]>;
   shareCopied: string[];
 };
+
+/** Demo event for local dev only — set SEED_DEMO=1 to load on startup. */
+export const SEED_EVENT_CODE = "COLOOP";
+export const SEED_EVENT_ID = "event_coloop";
+
+export function isSeedDemoEnabled(): boolean {
+  return process.env.SEED_DEMO === "1";
+}
+
+export function emptySeedBundle(): SeedBundle {
+  return {
+    events: [],
+    tokens: [],
+    profiles: [],
+    presence: [],
+    prefs: [],
+    claimed: [],
+    shareCopied: [],
+  };
+}
 
 function attendee(args: {
   id: string;
@@ -93,6 +111,10 @@ const PAST = {
 } as const;
 
 export function buildSeed(): SeedBundle {
+  if (!isSeedDemoEnabled()) {
+    return emptySeedBundle();
+  }
+
   const date = "2026-09-12T17:00:00.000Z";
   const coral = BOT_COLORS.coral;
   const squad1 = "squad_1";

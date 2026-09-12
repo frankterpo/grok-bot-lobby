@@ -22,8 +22,12 @@ type CreateEventDialogProps = {
 };
 
 export function CreateEventDialog({ open, onOpenChange, onCreated }: CreateEventDialogProps) {
-  const [name, setName] = useState("CoLoop Cowork");
-  const [date, setDate] = useState("2026-09-12T17:00");
+  const [name, setName] = useState("");
+  const [date, setDate] = useState(() => {
+    const next = new Date();
+    next.setMinutes(next.getMinutes() - next.getTimezoneOffset());
+    return next.toISOString().slice(0, 16);
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ event: Event; joinUrl: string } | null>(null);
