@@ -8,7 +8,7 @@ import { ContextPanel, PanelExpand } from "@/components/lobby/context-panel";
 import { CreateEventDialog } from "@/components/lobby/create-event-dialog";
 import { EventCodeChip } from "@/components/lobby/event-code-chip";
 import { LobbySidebar } from "@/components/lobby/lobby-sidebar";
-import { ChecklistDock, OnboardingScreen } from "@/components/lobby/onboarding-screen";
+import { OnboardingScreen } from "@/components/lobby/onboarding-screen";
 import { PermissionsWalkthrough } from "@/components/lobby/permissions-walkthrough";
 import { SessionSwitcher } from "@/components/lobby/session-switcher";
 import { ShareLink } from "@/components/lobby/share-link";
@@ -319,6 +319,7 @@ export function LobbyApp() {
         joinUrl={snapshot.joinUrl}
         actor={actor}
         currentAttendee={currentAttendee}
+        checklistItems={snapshot.checklist}
         profileAnimated={profileAnimated}
         onSelect={(id) => {
           setEventId(id);
@@ -449,7 +450,6 @@ export function LobbyApp() {
           onEdit={() => setEditOpen(true)}
         />
       )}
-      <ChecklistDock items={snapshot.checklist} />
       <CreateEventDialog
         open={createOpen}
         onOpenChange={setCreateOpen}

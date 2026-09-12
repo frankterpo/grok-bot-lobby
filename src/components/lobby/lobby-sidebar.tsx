@@ -5,8 +5,9 @@ import { Plus, Search } from "lucide-react";
 
 import { EventCodeChip } from "@/components/lobby/event-code-chip";
 import { GrokBotMark } from "@/components/lobby/grok-bot-mark";
+import { OutstandingTasksInbox } from "@/components/lobby/onboarding-screen";
 import { Button } from "@/components/ui/button";
-import type { Actor, Attendee, Event } from "@/lib/domain";
+import type { Actor, Attendee, ChecklistItem, Event } from "@/lib/domain";
 import { formatEventDate } from "@/lib/format";
 import { canCreateEvent, canShareEvent } from "@/lib/policy";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ type LobbySidebarProps = {
   joinUrl: string | null;
   actor: Actor;
   currentAttendee: Attendee | null;
+  checklistItems: ChecklistItem[];
   profileAnimated?: boolean;
   onSelect: (eventId: string) => void;
   onCreate: () => void;
@@ -29,6 +31,7 @@ export function LobbySidebar({
   joinUrl,
   actor,
   currentAttendee,
+  checklistItems,
   profileAnimated = false,
   onSelect,
   onCreate,
@@ -119,6 +122,8 @@ export function LobbySidebar({
         )}
       </nav>
 
+      <OutstandingTasksInbox items={checklistItems} />
+
       {currentAttendee && actor.userId ? (
         <button
           type="button"
@@ -129,6 +134,7 @@ export function LobbySidebar({
             color={currentAttendee.botColor ?? "#f97066"}
             size={28}
             animated={profileAnimated}
+            restSeed={currentAttendee.id}
           />
           <span className="min-w-0 truncate text-[12px] text-white/85">{currentAttendee.name}</span>
         </button>

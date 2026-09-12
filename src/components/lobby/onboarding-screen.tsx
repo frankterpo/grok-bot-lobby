@@ -56,19 +56,32 @@ export function OnboardingScreen({ items, onOpenSeed, onCreate, onJoin }: Onboar
   );
 }
 
-export function ChecklistDock({ items }: { items: ChecklistItem[] }) {
+export function OutstandingTasksInbox({ items }: { items: ChecklistItem[] }) {
   const remaining = items.filter((item) => !item.done).length;
+
   return (
-    <details className="absolute bottom-3 left-[212px] z-20 hidden w-72 rounded-lg border border-[#262626] bg-[#111] md:block">
-      <summary className="micro cursor-pointer px-3 py-2 text-white/40">
-        {remaining === 0 ? "Lobby ready" : `${remaining} Grok Bot steps left`}
+    <details className="group shrink-0 border-t border-sidebar-border">
+      <summary className="micro flex cursor-pointer list-none items-center px-3 py-2 text-white/40 transition-colors hover:bg-sidebar-accent hover:text-white/55 [&::-webkit-details-marker]:hidden">
+        <span>
+          Outstanding tasks
+          {remaining > 0 ? <span className="text-sidebar-primary"> · {remaining}</span> : null}
+        </span>
       </summary>
-      <ol className="space-y-1.5 border-t border-[#262626] px-3 py-2">
+      <ol className="max-h-48 space-y-1.5 overflow-y-auto border-t border-sidebar-border px-3 py-2">
         {CHECKLIST_COPY.map((item, index) => {
           const live = items[index];
+          const done = live?.done ?? false;
           return (
-            <li key={item.id} className="flex gap-2 text-[11px] text-white/55">
-              <span className={live?.done ? "text-[#f59e0b]" : "text-white/30"}>{item.label}</span>
+            <li key={item.id} className="flex gap-2 text-[11px]">
+              <span
+                className={cn(
+                  "mt-0.5 grid size-3.5 shrink-0 place-items-center rounded-sm border text-[8px]",
+                  done ? "border-sidebar-primary text-sidebar-primary" : "border-[#262626] text-white/25",
+                )}
+              >
+                {done ? "✓" : live?.step ?? index + 1}
+              </span>
+              <span className={done ? "text-white/35 line-through" : "text-white/55"}>{item.label}</span>
             </li>
           );
         })}
