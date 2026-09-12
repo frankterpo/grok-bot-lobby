@@ -5,15 +5,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  buildCurlBlockForTab,
   fsAccessSupported,
   pickSkillFolder,
   probeDefaultGateways,
   probeLocalSkillFolder,
+  probeOpfsPersistence,
   type LocalFolderProbe,
   type LocalhostGatewayProbe,
+  type OpfsProbe,
 } from "@/lib/browser-grok-probe";
 import { lobbyFetch, rememberEventCode, writeSlot } from "@/lib/client";
 import type { ShareLevel } from "@/lib/domain";
+import { clientLobbyOrigin } from "@/lib/format";
 
 type BrowserGrokExperimentProps = {
   code: string;
@@ -27,6 +31,8 @@ export function BrowserGrokExperiment({ code, shareLevel, onJoined }: BrowserGro
   const [task, setTask] = useState("Joining from browser tab");
   const [folderProbe, setFolderProbe] = useState<LocalFolderProbe | null>(null);
   const [gatewayProbes, setGatewayProbes] = useState<LocalhostGatewayProbe[] | null>(null);
+  const [opfsProbe, setOpfsProbe] = useState<OpfsProbe | null>(null);
+  const [curlBlock, setCurlBlock] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -37,7 +43,17 @@ export function BrowserGrokExperiment({ code, shareLevel, onJoined }: BrowserGro
       const handle = await pickSkillFolder();
       const result = await probeLocalSkillFolder(handle);
       setFolderProbe(result);
-      setStatus(result.readError ?? "Folder readable. Skill scripts only — not Agent Computer sand-data.");
+      if (result.hasGrokbotScript) {
+        setCurlBlock(
+          buildCurlBlockForTab({
+            code,
+            origin: clientLobbyOrigin(),
+            name: name.trim() || "YOUR_NAME",
+            task: task.trim() || "Joining the lobby",
+          }),
+        );
+      }
+      setStatus(result.readError ?? "Folder readable. Copy curl block below for Agent Computer.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not read folder.");
     } finally {
@@ -54,6 +70,20 @@ export function BrowserGrokExperiment({ code, shareLevel, onJoined }: BrowserGro
       setStatus("Localhost probes finished. Remote lobby origins cannot reach your gateway without CORS + token.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Gateway probe failed.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function probeOpfs(): Promise<void> {
+    setPending(true);
+    setStatus(null);
+    try {
+      const result = await probeOpfsPersistence();
+      setOpfsProbe(result);
+      setStatus(result.detail);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "OPFS probe failed.");
     } finally {
       setPending(false);
     }
@@ -160,6 +190,33 @@ export function BrowserGrokExperiment({ code, shareLevel, onJoined }: BrowserGro
         {folderProbe ? (
           <pre className="max-h-32 overflow-auto rounded border border-[#262626] bg-[#0d0d0d] p-2 text-[10px] text-white/55">
             {JSON.stringify(folderProbe, null, 2)}
+          </pre>
+        ) : null}
+        {curlBlock ? (
+          <div className="space-y-1">
+            <p className="micro text-white/40">Generated curl block (paste into Agent Computer)</p>
+            <pre className="max-h-40 overflow-auto rounded border border-[#262626] bg-[#0d0d0d] p-2 text-[10px] text-emerald-200/70 whitespace-pre-wrap">
+              {curlBlock}
+            </pre>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="space-y-2">
+        <p className="micro text-white/40">1b) Origin Private File System (same-origin persistence)</p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          className="h-8 border-[#262626] bg-[#0d0d0d] text-[11px]"
+          onClick={() => void probeOpfs()}
+        >
+          Probe OPFS (navigator.storage.getDirectory)
+        </Button>
+        {opfsProbe ? (
+          <pre className="max-h-24 overflow-auto rounded border border-[#262626] bg-[#0d0d0d] p-2 text-[10px] text-white/55">
+            {JSON.stringify(opfsProbe, null, 2)}
           </pre>
         ) : null}
       </div>

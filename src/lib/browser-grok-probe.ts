@@ -1,11 +1,14 @@
 /** Experimental probes for what a browser tab can reach toward Grok Bot. */
 
+import { buildNoCloneCurlBlock } from "@/lib/join-blocks";
+
 export type LocalFolderProbe = {
   folderName: string;
   files: string[];
   hasGrokbotScript: boolean;
   hasGatewayJson: boolean;
   gatewayPreview: string | null;
+  skillMdPreview: string | null;
   readError: string | null;
 };
 
@@ -14,6 +17,14 @@ export type LocalhostGatewayProbe = {
   ok: boolean;
   status: number | null;
   cors: "allowed" | "blocked" | "unknown";
+  detail: string;
+};
+
+export type OpfsProbe = {
+  supported: boolean;
+  canGetDirectory: boolean;
+  wroteFile: boolean;
+  readBack: string | null;
   detail: string;
 };
 
@@ -47,6 +58,7 @@ export async function probeLocalSkillFolder(
   let hasGrokbotScript = false;
   let hasGatewayJson = false;
   let gatewayPreview: string | null = null;
+  let skillMdPreview: string | null = null;
   let readError: string | null = null;
 
   try {
@@ -70,6 +82,13 @@ export async function probeLocalSkillFolder(
     }
   }
 
+  try {
+    const raw = await readTextFile(handle, ["SKILL.md"]);
+    skillMdPreview = raw?.slice(0, 160) ?? null;
+  } catch {
+    // optional
+  }
+
   if (!hasGrokbotScript && !hasGatewayJson) {
     readError =
       "No scripts/grokbot.py or gateway.json in this folder. sand-data lives on the Grok Bot Agent Computer, not in the skill install.";
@@ -81,8 +100,68 @@ export async function probeLocalSkillFolder(
     hasGrokbotScript,
     hasGatewayJson,
     gatewayPreview,
+    skillMdPreview,
     readError,
   };
+}
+
+export function buildCurlBlockForTab(args: {
+  code: string;
+  origin: string;
+  name: string;
+  task: string;
+}): string {
+  return buildNoCloneCurlBlock({
+    code: args.code,
+    origin: args.origin,
+    name: args.name,
+    task: args.task,
+  });
+}
+
+export function opfsSupported(): boolean {
+  return typeof navigator !== "undefined" && "storage" in navigator && "getDirectory" in navigator.storage;
+}
+
+/** Origin Private File System — persists across reloads on same origin (not skill path). */
+export async function probeOpfsPersistence(): Promise<OpfsProbe> {
+  if (!opfsSupported()) {
+    return {
+      supported: false,
+      canGetDirectory: false,
+      wroteFile: false,
+      readBack: null,
+      detail: "navigator.storage.getDirectory unavailable (needs Chromium + secure context).",
+    };
+  }
+  try {
+    const root = await navigator.storage.getDirectory();
+    const handle = await root.getFileHandle("grok-bridge-probe.txt", { create: true });
+    const writable = await handle.createWritable();
+    const stamp = `probe-${Date.now()}`;
+    await writable.write(stamp);
+    await writable.close();
+    const file = await handle.getFile();
+    const readBack = await file.text();
+    return {
+      supported: true,
+      canGetDirectory: true,
+      wroteFile: true,
+      readBack,
+      detail:
+        readBack === stamp
+          ? "OPFS read/write OK. Cannot store picked skill path without File System Access persistent permission."
+          : "OPFS write mismatch.",
+    };
+  } catch (error) {
+    return {
+      supported: true,
+      canGetDirectory: false,
+      wroteFile: false,
+      readBack: null,
+      detail: error instanceof Error ? error.message : "OPFS probe failed.",
+    };
+  }
 }
 
 export async function probeLocalhostGateway(port: number): Promise<LocalhostGatewayProbe> {
