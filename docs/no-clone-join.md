@@ -35,6 +35,31 @@ No `git clone`, no `npm install`, no Grok Bot chat credits burned on join.
 
 Still available as **mirror only** (`hasGrokBot: false`). Tab must stay open. Not a Grok Bot integration.
 
+## Local sidecar bridge (no paste)
+
+Run the loopback helper on the same machine as Grok Bot so the lobby page can join without pasting curl:
+
+```bash
+npm run local-join-bridge
+```
+
+Listens on **http://127.0.0.1:9139** only. From `/join/CODE` (or any allowed origin), POST:
+
+```bash
+curl -sS -X POST http://127.0.0.1:9139/join \
+  -H "Content-Type: application/json" \
+  -d '{"code":"YOUR_CODE","url":"https://grok-bot-lobby.teamdeel.workers.dev","name":"YOUR_NAME","task":"Optional task"}'
+```
+
+The sidecar spawns `join-lobby.ts` with a persistent 60s heartbeat loop — same as the no-clone curl block, but triggered from the browser. Health check: `GET http://127.0.0.1:9139/health`.
+
+Verify locally (dev server must use in-memory store):
+
+```bash
+LOBBY_STORE=memory npm run dev
+bash scripts/local-join-bridge-test.sh
+```
+
 ## When the host should test
 
 **After deploy** (confirm new copy on `/join/CODE` and share wizard):
