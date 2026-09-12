@@ -38,6 +38,10 @@ export type User = {
   botColor?: string;
   lumaProfileUrl?: string;
   lumaHandle?: string;
+  githubProfileUrl?: string;
+  githubHandle?: string;
+  originProfileUrl?: string;
+  originHandle?: string;
   botTaskLabel?: string;
 };
 
@@ -80,6 +84,10 @@ export type LumaProfile = {
   twitter?: string;
   linkedin?: string;
   pastEvents: LumaPastEvent[];
+  lumaHandle?: string;
+  githubHandle?: string;
+  githubBio?: string;
+  originHandle?: string;
 };
 
 export type LobbyToken = {
@@ -182,8 +190,9 @@ export type Selection =
   | { kind: "squad"; squadId: string }
   | { kind: "none" };
 
-export const HEARTBEAT_MS = 30_000;
-export const STALE_AFTER_MS = 90_000;
+export const HEARTBEAT_MS = 60_000;
+export const STALE_AFTER_MS = 180_000;
+export const TASK_LABEL_MAX = 80;
 
 export const HOST_USER_ID = "user_francisco";
 

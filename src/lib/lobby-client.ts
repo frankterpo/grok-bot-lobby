@@ -52,11 +52,16 @@ export async function lobbyDispatch<T>(op: string, payload: Record<string, unkno
           payload.eventId as string,
         ) as T;
       case "claim":
-        return lobby.claim(
+        return (await lobby.claim(
           payload.actor as Parameters<LobbyMemory["claim"]>[0],
           payload.input as Parameters<LobbyMemory["claim"]>[1],
           payload.origin as string,
-        ) as T;
+        )) as T;
+      case "updateProfile":
+        return (await lobby.updateProfile(
+          payload.actor as Parameters<LobbyMemory["updateProfile"]>[0],
+          payload.input as Parameters<LobbyMemory["updateProfile"]>[1],
+        )) as T;
       case "sync":
         return lobby.sync(
           payload.actor as Parameters<LobbyMemory["sync"]>[0],
@@ -126,6 +131,8 @@ export async function lobbyDispatch<T>(op: string, payload: Record<string, unkno
           payload.stored as Parameters<LobbyMemory["actor"]>[1],
         ) as T;
       case "checkClaimRateLimit":
+      case "checkSyncRateLimit":
+      case "checkHeartbeatRateLimit":
       case "checkCreateEventRateLimit":
         return { allowed: true } as T;
       default:
@@ -134,7 +141,7 @@ export async function lobbyDispatch<T>(op: string, payload: Record<string, unkno
   }
 
   const result = await room.dispatch(op, payload);
-  if (op !== "checkClaimRateLimit") {
+  if (!op.startsWith("check")) {
     await room.commit();
   }
   return result as T;

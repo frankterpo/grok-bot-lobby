@@ -5,6 +5,7 @@ import {
   type ShareLevel,
   type TokenStatus,
 } from "@/lib/domain";
+import { truncateTaskLabel } from "@/lib/token-utils";
 import { asBoolean, asString, isRecord } from "@/lib/http";
 
 export type ClaimBody = {
@@ -14,6 +15,23 @@ export type ClaimBody = {
   shareLevel: ShareLevel;
   hasGrokBot: boolean;
   acceptPermissions: boolean;
+  lumaProfileUrl?: string;
+  lumaHandle?: string;
+  githubProfileUrl?: string;
+  githubHandle?: string;
+  originProfileUrl?: string;
+  originHandle?: string;
+};
+
+export type ProfileBody = {
+  eventId: string;
+  botId: string;
+  lumaProfileUrl?: string;
+  lumaHandle?: string;
+  githubProfileUrl?: string;
+  githubHandle?: string;
+  originProfileUrl?: string;
+  originHandle?: string;
 };
 
 export type SyncBody = {
@@ -96,6 +114,33 @@ export function parseClaimBody(value: unknown): ClaimBody | null {
     shareLevel: shareLevelRaw,
     hasGrokBot,
     acceptPermissions,
+    lumaProfileUrl: asString(value.lumaProfileUrl) ?? undefined,
+    lumaHandle: asString(value.lumaHandle) ?? undefined,
+    githubProfileUrl: asString(value.githubProfileUrl) ?? undefined,
+    githubHandle: asString(value.githubHandle) ?? undefined,
+    originProfileUrl: asString(value.originProfileUrl) ?? undefined,
+    originHandle: asString(value.originHandle) ?? undefined,
+  };
+}
+
+export function parseProfileBody(value: unknown): ProfileBody | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const eventId = asString(value.eventId);
+  const botId = asString(value.botId);
+  if (!eventId || !botId) {
+    return null;
+  }
+  return {
+    eventId,
+    botId,
+    lumaProfileUrl: asString(value.lumaProfileUrl) ?? undefined,
+    lumaHandle: asString(value.lumaHandle) ?? undefined,
+    githubProfileUrl: asString(value.githubProfileUrl) ?? undefined,
+    githubHandle: asString(value.githubHandle) ?? undefined,
+    originProfileUrl: asString(value.originProfileUrl) ?? undefined,
+    originHandle: asString(value.originHandle) ?? undefined,
   };
 }
 
@@ -105,11 +150,15 @@ export function parseSyncBody(value: unknown): SyncBody | null {
   }
   const eventId = asString(value.eventId);
   const botId = asString(value.botId);
-  const taskLabel = asString(value.taskLabel);
+  const taskLabelRaw = asString(value.taskLabel);
   const statusRaw = asString(value.status);
   const focus = asString(value.focus) ?? undefined;
   const shareRaw = asString(value.shareLevel);
-  if (!eventId || !botId || !taskLabel || !statusRaw || !isTokenStatus(statusRaw)) {
+  if (!eventId || !botId || !taskLabelRaw || !statusRaw || !isTokenStatus(statusRaw)) {
+    return null;
+  }
+  const taskLabel = truncateTaskLabel(taskLabelRaw);
+  if (!taskLabel) {
     return null;
   }
   if (shareRaw && !isShareLevel(shareRaw)) {
