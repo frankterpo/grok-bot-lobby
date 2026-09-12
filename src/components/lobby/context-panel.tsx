@@ -500,9 +500,11 @@ function SquadDetail({
                 className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left hover:bg-[#161616]"
                 onClick={() => onSelectAttendee(member.id)}
               >
-                <span
-                  className="size-2 rounded-full"
-                  style={{ background: member.botColor ?? "#f97066" }}
+                <GrokBot
+                  attendee={member}
+                  size="sm"
+                  youLabel={false}
+                  youRing={member.isCurrentUser}
                 />
                 <span className="flex-1 text-[12px] text-white/80">{member.name}</span>
                 <ChevronRight className="size-3.5 text-white/30" strokeWidth={1.5} />
