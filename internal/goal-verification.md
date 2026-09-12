@@ -2,60 +2,82 @@
 
 **Branch:** `cursor/goal-45-attendee-ca84`  
 **Deploy:** https://grok-bot-lobby.teamdeel.workers.dev  
-**Version ID:** `fbc837c9-6a51-43d7-ae70-1ed49cdf97d4`  
-**Clone:** https://github.com/frankterpo/grok-bot-lobby.git
+**Version ID:** `12f10fc9-82cb-4e32-a333-8cc90efe34f3` (redeployed 2026-09-12)  
+**Clone:** https://github.com/frankterpo/grok-bot-lobby.git  
+**Note:** `franciscoterpolilli/grok-bot-lobby` does not exist (404). Published under authenticated account `frankterpo`.
 
-## Evidence table
+## Goal checklist (pass/fail)
 
-| Check | Command / action | Expected | Result |
-| --- | --- | --- | --- |
-| Deploy live | `npm run deploy` | workers.dev URL | ✅ `https://grok-bot-lobby.teamdeel.workers.dev` |
-| Host auth 403 | `POST /api/events` no cookie | 403 | ✅ `403` — `Host authentication required.` |
-| Root UI | `GET /` | 200 | ✅ `200` |
-| Profile enrich route | `POST /api/profile/enrich` `{"githubHandle":"octocat"}` | not 404 | ✅ `200` — bio enriched |
-| Bots list route | `GET /api/bots/list` | not 404 | ✅ `400` — needs eventId/code (route exists) |
-| Bots list missing event | `GET /api/bots/list?code=ZZZZZZZZ` | 404 JSON | ✅ `404` — `No lobby with that id or code.` |
-| Claim rate limit | raised to 60/IP/min | supports 45 joins | ✅ committed `df4db0d` |
-| Token dedup | identical sync skipped | no churn | ✅ `src/lib/token-utils.ts` |
-| Heartbeat default | join-lobby | 60s | ✅ `HEARTBEAT_MS = 60_000` |
-| taskLabel cap | parsers + sync | 80 chars | ✅ `TASK_LABEL_MAX` |
-| Load test script | `npm run load-test-45` | exists | ✅ `scripts/load-test-45.ts` |
-| Load test 45/45 | local run | 45 joined | ⚠️ partial — 20/45 before rate-limit fix (v2); fix deployed, not re-run (dev down) |
-| GitHub publish | `gh repo create` + push | public clone URL | ✅ https://github.com/frankterpo/grok-bot-lobby.git |
-| `domain.ts` typed | `src/lib/domain.ts` | typed unions | ✅ |
-| Files &lt;800 lines | `lobby-store.ts` | &lt;800 | ⚠️ 873 lines (over by 73) |
+| Goal area | Item | Status |
+| --- | --- | --- |
+| **A Scale** | Server token dedup | ✅ PASS — `tokensEqual` in `src/lib/token-utils.ts` |
+| **A Scale** | Rate limits sync/heartbeat/claim | ✅ PASS — 120/bot/min sync+heartbeat; 60/IP/min claim |
+| **A Scale** | 60s heartbeat in join-lobby | ✅ PASS — `HEARTBEAT_MS = 60_000` |
+| **A Scale** | taskLabel 80-char cap | ✅ PASS — `TASK_LABEL_MAX` |
+| **A Scale** | Load test 45 bots | ✅ PASS — 45/45 joined (see below) |
+| **A Scale** | Deploy | ✅ PASS — workers.dev live |
+| **B Social** | Squad invites + token exchange + share levels + guest wizard | ✅ PASS — pre-existing routes/UI |
+| **C Profiles** | Luma/GitHub/Origin inputs, fetch/cache, detail panel, DO persist | ✅ PASS — `profile-fetch.ts`, `/api/bots/profile`, `/api/profile/enrich` |
+| **D Bridge** | grok-bot-skill docs + CLI scripts | ✅ PASS — `docs/grok-bot-lobby-skill-bridge.md`, npm scripts |
+| **Publish** | GitHub public repo | ⚠️ PARTIAL — `frankterpo/grok-bot-lobby` public; `franciscoterpolilli/*` 404 |
+| **Verify** | curl HOST 403 without cookie | ✅ PASS — `POST /api/events` → 403 |
+| **Verify** | New API routes non-404 | ✅ PASS — enrich 200, list 400 |
+| **Verify** | `domain.ts` typed | ✅ PASS — 374 lines, union types + `assertNever` |
+| **Verify** | Files &lt;800 lines | ❌ FAIL — `lobby-store.ts` 873 lines |
 
-## Production curl samples
+## Production curl evidence (2026-09-12)
 
-```bash
-# Profile enrich (200)
-curl -s -X POST https://grok-bot-lobby.teamdeel.workers.dev/api/profile/enrich \
-  -H 'Content-Type: application/json' \
-  -d '{"githubHandle":"octocat"}'
-
-# Bots list — route exists (400 without params)
-curl -s https://grok-bot-lobby.teamdeel.workers.dev/api/bots/list
-
-# Host protected (403)
-curl -s -X POST https://grok-bot-lobby.teamdeel.workers.dev/api/events \
-  -H 'Content-Type: application/json' -d '{"name":"x","date":"y"}'
+```
+POST /api/profile/enrich  {"githubHandle":"octocat"}  → HTTP 200
+GET  /api/bots/list                                 → HTTP 400  {"error":"Need eventId or code."}
+POST /api/events (no cookie)                        → HTTP 403  {"error":"Host authentication required."}
+GET  /                                              → HTTP 200
 ```
 
-## Load test partial output (pre rate-limit fix)
+## Load test output (45/45 PASS)
 
 ```json
 {
+  "ok": true,
+  "url": "http://127.0.0.1:4521",
+  "code": "HFJ33PV9",
   "requested": 45,
-  "joined": 20,
-  "failed": 25,
-  "failures": [{ "error": "Too many join attempts. Wait a minute and try again." }]
+  "joined": 45,
+  "failed": 0,
+  "elapsedMs": 717,
+  "failures": [],
+  "sampleUserIds": [
+    "user_fb7f81477b",
+    "user_6dc6e79d13",
+    "user_57089be6cd",
+    "user_1b92a48232",
+    "user_1e5cf550e7"
+  ]
 }
 ```
 
-After `df4db0d` (claim limit 60/IP/min), re-run:
+Command: `LOBBY_STORE=memory npm run load-test-45 -- --url http://127.0.0.1:4521 --code HFJ33PV9`
 
-```bash
-npm run load-test-45 -- --url https://grok-bot-lobby.teamdeel.workers.dev --code CODE
+Prior partial run (pre rate-limit fix, 20/45): claim limit was 20/IP/min — fixed in `df4db0d`.
+
+## File line counts
+
+| File | Lines | &lt;800? |
+| --- | ---: | --- |
+| `src/lib/domain.ts` | 374 | ✅ |
+| `src/lib/lobby-store.ts` | 873 | ❌ |
+| `src/lib/lobby-client.ts` | 199 | ✅ |
+| `src/lib/parsers.ts` | 317 | ✅ |
+| `src/components/lobby/context-panel.tsx` | 595 | ✅ |
+| `src/components/lobby/lobby-app.tsx` | 522 | ✅ |
+
+## Wrangler deploy (latest)
+
+```
+Deployed grok-bot-lobby triggers
+  https://grok-bot-lobby.teamdeel.workers.dev
+Current Version ID: 12f10fc9-82cb-4e32-a333-8cc90efe34f3
+Routes include: /api/profile/enrich, /api/bots/list
 ```
 
 ## Swarm reports
