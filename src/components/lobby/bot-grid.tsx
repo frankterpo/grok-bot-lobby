@@ -58,7 +58,7 @@ export function BotGrid({
           {hidden > 0 ? (
             <button
               type="button"
-              className="micro flex items-center gap-1 text-white/40 hover:text-[#f59e0b]"
+              className="micro flex items-center gap-1 text-white/40 hover:text-white/70"
               onClick={() => setShowAll(true)}
             >
               See all <ArrowRight className="size-3" strokeWidth={1.5} />
@@ -105,7 +105,7 @@ export function BotGrid({
                 onClick={() => onSelectSquad(squad.id)}
                 className={cn(
                   "flex flex-col items-center gap-2 rounded-lg border bg-[#161616] p-3 text-center transition-colors",
-                  squadSelected ? "border-[#f59e0b]" : "border-[#262626] hover:border-white/20",
+                  squadSelected ? "border-white/30 bg-[var(--grok-sidebar-selected)]" : "border-[#262626] hover:border-white/20",
                 )}
               >
                 <GroupClusterAvatar
@@ -116,7 +116,7 @@ export function BotGrid({
                 <p className="micro text-white/45">
                   {isYourSquad ? (
                     <>
-                      <span className="text-[#f59e0b]/70">YOU</span>
+                      <span className="text-white/40">YOU</span>
                       <span className="text-white/30"> · </span>
                     </>
                   ) : null}

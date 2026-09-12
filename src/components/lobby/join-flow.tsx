@@ -89,7 +89,7 @@ export function JoinFlow({ code }: JoinFlowProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0d0d0d] px-4">
       <div className="w-full max-w-md rounded-lg border border-[#262626] bg-[#111] p-5">
-        <p className="micro text-[#f59e0b]">Event {code.toUpperCase()}</p>
+        <p className="micro text-white/45">Event {code.toUpperCase()}</p>
         {joinBody({
           path,
           code,
@@ -170,7 +170,7 @@ function joinBody(args: {
           <Button
             type="button"
             disabled={args.pending}
-            className="w-full bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => void args.claim({ name: "Reed", botColor: BOT_COLORS.cyan, grok: true })}
           >
             Join lobby
@@ -187,7 +187,7 @@ function joinBody(args: {
           </p>
           <Button
             type="button"
-            className="w-full bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => args.setPath("new-claim")}
           >
             Continue
@@ -220,7 +220,7 @@ function joinBody(args: {
                 className="size-7 rounded-full border"
                 style={{
                   background: swatch,
-                  outline: args.claimColor === swatch ? "1.5px solid #f59e0b" : "1px solid #262626",
+                  outline: args.claimColor === swatch ? "1.5px solid #e8e8e8" : "1px solid #262626",
                 }}
               />
             ))}
@@ -230,7 +230,7 @@ function joinBody(args: {
           <Button
             type="submit"
             disabled={args.pending || args.claimName.trim().length === 0}
-            className="w-full bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Join lobby
           </Button>

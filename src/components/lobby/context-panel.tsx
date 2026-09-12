@@ -247,7 +247,7 @@ function DetailHeader({
         <PresenceDot state={state} />
         <p className="truncate text-[13px] text-white/90">{attendee.name}</p>
       </div>
-      {isYou ? <span className="micro shrink-0 text-[#f59e0b]">You</span> : null}
+      {isYou ? <span className="micro shrink-0 text-white/40">You</span> : null}
     </div>
   );
 }
@@ -342,7 +342,7 @@ function YouDetail({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 text-[11px] text-[#f59e0b]"
+              className="h-7 text-[11px] text-white/70"
               onClick={onEdit}
             >
               Edit
@@ -422,7 +422,7 @@ function AttendeeDetail({
         {canInvite ? (
           <Button
             type="button"
-            className="w-full bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => void onInvite()}
           >
             Invite to Group
@@ -524,7 +524,7 @@ function SquadDetail({
         {canRequestJoin(actor, squad) ? (
           <Button
             type="button"
-            className="w-full bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => void onRequest()}
           >
             Request to join
@@ -582,7 +582,7 @@ export function PanelExpand({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       className={cn(
-        "absolute top-3 right-3 grid size-7 place-items-center rounded-md border border-[#262626] bg-[#161616] text-white/50 hover:text-[#f59e0b]",
+        "absolute top-3 right-3 grid size-7 place-items-center rounded-md border border-[#262626] bg-[#161616] text-white/50 hover:text-white/80",
       )}
       aria-label="Open panel"
     >

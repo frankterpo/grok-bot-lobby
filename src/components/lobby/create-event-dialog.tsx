@@ -66,7 +66,7 @@ export function CreateEventDialog({ open, onOpenChange, onCreated }: CreateEvent
                 Tell Grok Bots: Join lobby {created.event.eventCode} at this URL. Not a web signup.
               </DialogDescription>
             </DialogHeader>
-            <p className="font-mono text-[18px] tracking-[0.2em] text-[#f59e0b]">{created.event.eventCode}</p>
+            <p className="font-mono text-[18px] tracking-[0.2em] text-white/90">{created.event.eventCode}</p>
             <ShareLink url={created.joinUrl} eventId={created.event.id} />
           </>
         ) : (
@@ -98,7 +98,7 @@ export function CreateEventDialog({ open, onOpenChange, onCreated }: CreateEvent
             <Button
               type="submit"
               disabled={pending}
-              className="w-full bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Create event
             </Button>

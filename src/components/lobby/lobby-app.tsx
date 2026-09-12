@@ -460,7 +460,7 @@ export function LobbyApp() {
       />
       {shareOpen && createdJoin ? (
         <div className="absolute top-14 right-[292px] z-30 w-80 rounded-lg border border-[#262626] bg-[#111] p-3 shadow-xl">
-          <p className="micro text-[#f59e0b]">Shareable join link</p>
+          <p className="micro text-white/45">Shareable join link</p>
           <p className="mt-1 text-[12px] text-white/50">Send this. Second Grok Bot walks in live.</p>
           <div className="mt-2">
             <ShareLink url={createdJoin} eventId={eventId} />

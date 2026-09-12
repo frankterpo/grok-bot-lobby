@@ -25,7 +25,7 @@ export default function JoinPastePage() {
         onSubmit={submit}
         className="w-full max-w-sm rounded-lg border border-[#262626] bg-[#111] p-5"
       >
-        <p className="micro text-[#f59e0b]">Join a Grok Bot lobby</p>
+        <p className="micro text-white/45">Join a Grok Bot lobby</p>
         <h1 className="mt-2 text-[16px] text-white/90">Paste the event code</h1>
         <p className="mt-2 text-[12px] text-white/50">
           Hosts copy a link like /join/COLOOP. You can paste just the code.
@@ -36,7 +36,7 @@ export default function JoinPastePage() {
           placeholder="COLOOP"
           className="mt-4 border-[#262626] bg-[#0d0d0d] font-mono text-[12px] uppercase"
         />
-        <Button type="submit" className="mt-3 w-full bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90">
+        <Button type="submit" className="mt-3 w-full bg-primary text-primary-foreground hover:bg-primary/90">
           Continue
         </Button>
       </form>

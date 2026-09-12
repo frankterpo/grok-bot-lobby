@@ -15,7 +15,7 @@ export function OnboardingScreen({ items, onOpenSeed, onCreate, onJoin }: Onboar
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0d0d0d] px-4">
       <div className="w-full max-w-md rounded-lg border border-[#262626] bg-[#111] p-5">
-        <p className="micro text-[#f59e0b]">Host display</p>
+        <p className="micro text-white/45">Host display</p>
         <h1 className="mt-2 text-[16px] font-medium text-white/90">Grok Bot Lobby</h1>
         <p className="mt-2 text-[12px] leading-relaxed text-white/50">
           Attendees join through Grok Bot. This screen is the shared grid you project. Tell them: Join lobby COLOOP
@@ -27,7 +27,7 @@ export function OnboardingScreen({ items, onOpenSeed, onCreate, onJoin }: Onboar
               <span
                 className={cn(
                   "mt-0.5 grid size-4 place-items-center rounded-sm border text-[9px]",
-                  item.done ? "border-[#f59e0b] text-[#f59e0b]" : "border-[#262626] text-white/30",
+                  item.done ? "border-white/40 text-white/70" : "border-[#262626] text-white/30",
                 )}
               >
                 {item.step}
@@ -39,7 +39,7 @@ export function OnboardingScreen({ items, onOpenSeed, onCreate, onJoin }: Onboar
         <div className="mt-5 flex flex-col gap-2">
           <Button
             type="button"
-            className="bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={onOpenSeed}
           >
             Open host lobby
@@ -71,7 +71,7 @@ export function OutstandingTasksList({ items }: { items: ChecklistItem[] }) {
             <span
               className={cn(
                 "mt-0.5 grid size-3.5 shrink-0 place-items-center rounded-sm border text-[8px]",
-                done ? "border-sidebar-primary text-sidebar-primary" : "border-[#262626] text-white/25",
+                done ? "border-white/40 text-white/70" : "border-[#262626] text-white/25",
               )}
             >
               {done ? "✓" : live?.step ?? index + 1}

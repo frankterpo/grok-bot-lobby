@@ -36,7 +36,7 @@ export function TokenExchanges({
 
   return (
     <div className="border-t border-[#262626] px-3 py-3">
-      <p className="micro text-[#f59e0b]">Pending token exchanges</p>
+      <p className="micro text-white/45">Pending token exchanges</p>
       <ul className="mt-2 space-y-2">
         {pending.map((item) => {
           const canResolve = canResolveExchange(actor, item, event);
@@ -51,7 +51,7 @@ export function TokenExchanges({
                   <Button
                     type="button"
                     size="xs"
-                    className="h-6 bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+                    className="h-6 bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={() => void onApprove(item.id)}
                   >
                     Approve

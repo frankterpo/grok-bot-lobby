@@ -30,7 +30,7 @@ export function PermissionsWalkthrough({ open, onOpenChange, onAccept }: Permiss
         <ul className="space-y-3">
           {PERMISSIONS_COPY.map((item) => (
             <li key={item.id}>
-              <p className="micro text-[#f59e0b]">{item.title}</p>
+              <p className="micro text-white/45">{item.title}</p>
               <p className="mt-1 text-[12px] leading-relaxed text-white/60">{item.body}</p>
             </li>
           ))}
@@ -41,7 +41,7 @@ export function PermissionsWalkthrough({ open, onOpenChange, onAccept }: Permiss
         <DialogFooter className="border-[#262626] bg-transparent">
           <Button
             type="button"
-            className="w-full bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={onAccept}
           >
             Got it — show my bot

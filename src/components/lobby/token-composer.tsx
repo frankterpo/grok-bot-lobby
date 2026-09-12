@@ -85,7 +85,7 @@ export function TokenShareToggle({
           onClick={() => void toggle()}
           className={cn(
             "relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-50",
-            enabled ? "bg-[#f59e0b]" : "bg-[#262626]",
+            enabled ? "bg-white/80" : "bg-[#262626]",
           )}
         >
           <span

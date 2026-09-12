@@ -45,7 +45,7 @@ export function ShareLink({ url, eventId, compact = false }: ShareLinkProps) {
         variant={compact ? "ghost" : "default"}
         size={compact ? "icon-xs" : "sm"}
         onClick={() => void copy()}
-        className={compact ? "size-6 text-white/50 hover:text-[#f59e0b]" : "bg-[#f59e0b] text-[#0d0d0d] hover:bg-[#f59e0b]/90"}
+        className={compact ? "size-6 text-white/50 hover:text-white/80" : "bg-primary text-primary-foreground hover:bg-primary/90"}
         aria-label="Copy join link"
       >
         {copied ? <Check strokeWidth={1.5} /> : <Link2 strokeWidth={1.5} />}

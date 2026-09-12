@@ -27,7 +27,7 @@ export function GrokBot({
           "relative",
           photo ? "overflow-hidden rounded-full" : "",
           showRing
-            ? "rounded-full ring-1 ring-[#f59e0b]/55 ring-offset-1 ring-offset-[#0d0d0d]"
+            ? "rounded-full ring-1 ring-white/40 ring-offset-1 ring-offset-[#0d0d0d]"
             : "",
         )}
         style={{ width: px, height: px }}
@@ -59,7 +59,7 @@ export function GrokBadge({ size = 14 }: { size?: number }) {
         <path
           d="M6 1.5 7.2 4.8 10.7 6 7.2 7.2 6 10.5 4.8 7.2 1.3 6 4.8 4.8Z"
           fill="none"
-          stroke="#f59e0b"
+          stroke="#e8e8e8"
           strokeWidth="1.5"
           strokeLinejoin="round"
         />

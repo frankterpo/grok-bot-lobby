@@ -56,7 +56,13 @@
   --card-foreground: #e8e8e8;
   --popover: #161616;
   --popover-foreground: #e8e8e8;
-  --primary: #f59e0b;
+  /* x.ai baby-grok-bot tokens — dark lobby inversion of light-mode grok-bot vars */
+  --grok-sidebar-selected: #ffffff14;
+  --grok-sidebar-hover: #ffffff0a;
+  --grok-bg-active: #ffffff14;
+  --grok-border-subtle: #ffffff1a;
+  --grok-text-accent: #0a84ff;
+  --primary: #e8e8e8;
   --primary-foreground: #0d0d0d;
   --secondary: #111111;
   --secondary-foreground: #e8e8e8;
@@ -67,21 +73,21 @@
   --destructive: #f97066;
   --border: #262626;
   --input: #262626;
-  --ring: #f59e0b;
+  --ring: #ffffff40;
   --chart-1: #f97066;
   --chart-2: #22d3ee;
   --chart-3: #facc15;
   --chart-4: #fb923c;
-  --chart-5: #f59e0b;
+  --chart-5: #0a84ff;
   --radius: 0.5rem;
   --sidebar: #111111;
   --sidebar-foreground: #e8e8e8;
-  --sidebar-primary: #f59e0b;
+  --sidebar-primary: #e8e8e8;
   --sidebar-primary-foreground: #0d0d0d;
   --sidebar-accent: #161616;
   --sidebar-accent-foreground: #e8e8e8;
   --sidebar-border: #262626;
-  --sidebar-ring: #f59e0b;
+  --sidebar-ring: #ffffff40;
 }
 
 @layer base {

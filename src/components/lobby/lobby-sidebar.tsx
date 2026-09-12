@@ -77,7 +77,7 @@ export function LobbySidebar({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search events"
-            className="h-8 w-full rounded-md border border-[#262626] bg-[#0d0d0d] pr-2 pl-8 text-[12px] text-white/80 placeholder:text-white/30 outline-none transition-colors focus:border-[#f59e0b]/40 focus:ring-1 focus:ring-[#f59e0b]/25"
+            className="h-8 w-full rounded-md border border-[#262626] bg-[#0d0d0d] pr-2 pl-8 text-[12px] text-white/80 placeholder:text-white/30 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/15"
           />
         </label>
         {canCreateEvent(actor) ? (
@@ -108,14 +108,14 @@ export function LobbySidebar({
                 className={cn(
                   "lobby-event-row w-full rounded-lg border px-3 py-2.5 text-left transition-colors",
                   active
-                    ? "border-[#f59e0b]/70 bg-sidebar-accent"
-                    : "border-transparent hover:border-[#262626] hover:bg-sidebar-accent/80",
+                    ? "border-transparent bg-[var(--grok-sidebar-selected)]"
+                    : "border-transparent hover:bg-[var(--grok-sidebar-hover)]",
                 )}
               >
                 <p
                   className={cn(
                     "truncate text-[12px] font-medium",
-                    active ? "text-sidebar-primary" : "text-white/85",
+                    active ? "text-white/90" : "text-white/85",
                   )}
                 >
                   {event.name}
@@ -170,7 +170,7 @@ export function LobbySidebar({
             >
               <Inbox className="size-4" strokeWidth={1.5} />
               {adminAttentionCount > 0 ? (
-                <span className="absolute top-1.5 right-1.5 grid min-w-[14px] place-items-center rounded-full bg-[#f59e0b] px-1 text-[9px] font-medium leading-none text-[#0d0d0d]">
+                <span className="absolute top-1.5 right-1.5 grid min-w-[14px] place-items-center rounded-full bg-white/80 px-1 text-[9px] font-medium leading-none text-[#0d0d0d]">
                   {adminAttentionCount}
                 </span>
               ) : null}

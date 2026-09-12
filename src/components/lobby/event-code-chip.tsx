@@ -30,7 +30,7 @@ export function EventCodeChip({ code, eventId, joinUrl }: EventCodeChipProps) {
       <button
         type="button"
         onClick={() => void copy("code")}
-        className="micro flex items-center gap-1 rounded-md border border-[#262626] bg-[#111] px-1.5 py-0.5 text-white/50 hover:text-[#f59e0b]"
+        className="micro flex items-center gap-1 rounded-md border border-[#262626] bg-[#111] px-1.5 py-0.5 text-white/50 hover:text-white/80"
       >
         {copied === "code" ? <Check className="size-3" strokeWidth={1.5} /> : <Copy className="size-3" strokeWidth={1.5} />}
         {code}
@@ -39,7 +39,7 @@ export function EventCodeChip({ code, eventId, joinUrl }: EventCodeChipProps) {
         type="button"
         variant="ghost"
         size="icon-xs"
-        className="size-6 text-white/40 hover:text-[#f59e0b]"
+        className="size-6 text-white/40 hover:text-white/80"
         onClick={() => void copy("link")}
         aria-label="Copy shareable join link"
       >
