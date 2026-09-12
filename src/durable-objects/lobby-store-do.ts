@@ -153,16 +153,6 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
         const allowed = await this.checkRateLimit(`claim:${ip}`, 60, 60_000);
         return { allowed };
       }
-      case "checkSyncRateLimit": {
-        const botId = payload.botId as string;
-        const allowed = await this.checkRateLimit(`sync:${botId}`, 120, 60_000);
-        return { allowed };
-      }
-      case "checkHeartbeatRateLimit": {
-        const botId = payload.botId as string;
-        const allowed = await this.checkRateLimit(`heartbeat:${botId}`, 120, 60_000);
-        return { allowed };
-      }
       case "checkCreateEventRateLimit": {
         const ip = payload.ip as string;
         const allowed = await this.checkRateLimit(`create-event:${ip}`, 10, 60_000);

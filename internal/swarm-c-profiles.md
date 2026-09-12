@@ -1,16 +1,26 @@
+---
+subagentId: bc-8a1ec800-756f-5579-aa29-94d020cc3319
+swarm: C
+topic: profiles
+---
+
 # Swarm C — Profiles
 
 ## Delivered
 
-- **Inputs**: Luma, GitHub, Origin URLs/handles on `User` + claim body.
-- **Fetch/cache**: `src/lib/profile-fetch.ts` — 15m cache, GitHub API bio, handle parsing.
-- **Persist**: profiles map in Durable Object via `applyProfileInputs` / `updateProfile`.
-- **API**: `POST /api/bots/profile`.
-- **Detail panel**: `context-panel.tsx` shows luma/gh/origin handles + cached bio.
+| Item | Path |
+|------|------|
+| Domain types | `BotProfile` / `LumaProfile` in `src/lib/domain.ts` — luma, GitHub, Origin handles + URLs |
+| Fetch/cache | `src/lib/profile-fetch.ts` — GitHub API; Luma/Origin best-effort bio |
+| Apply + persist | `src/lib/lobby-profiles.ts` → `LobbyMemory.updateProfile`; DO `PersistedLobbyState.profiles` |
+| API | `POST /api/bots/profile`, `POST /api/profile/enrich` |
+| Claim inputs | Optional profile fields on `parseClaimBody` |
+| Detail panel | `context-panel.tsx` — gh/, origin/, luma/ links |
 
-## Usage
+## Persistence
 
-```bash
-npm run join-lobby -- --code CODE --url URL --name Alice --githubHandle octocat
-# or POST /api/bots/profile with eventId, botId, githubProfileUrl, etc.
-```
+Profiles stored in Durable Object state map `profiles: Array<[userId, BotProfile]>` via `toPersisted()` / `fromPersisted()`.
+
+## Note
+
+GitHub public API used without token (rate-limited). Production enrichment is best-effort; handles always persist even if fetch fails.
