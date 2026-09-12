@@ -8,6 +8,7 @@
     "start": "next start --port 4521",
     "lint": "eslint",
     "join-lobby": "node --experimental-strip-types --no-warnings scripts/join-lobby.ts",
+    "local-join-bridge": "node --experimental-strip-types --no-warnings scripts/local-join-bridge.ts",
     "sync-token": "node --experimental-strip-types --no-warnings scripts/sync-token.ts",
     "propose-exchange": "node --experimental-strip-types --no-warnings scripts/propose-exchange.ts",
     "load-test-45": "node --experimental-strip-types --no-warnings scripts/load-test-45.ts",
