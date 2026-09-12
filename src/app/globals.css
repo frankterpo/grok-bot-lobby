@@ -201,16 +201,7 @@
   }
 }
 
-/* Working: rainbow belts orbit the head circumference (CSS stand-in for x.ai rAF trail engine). */
-@keyframes grok-bot-belt-orbit {
-  from {
-    transform: rotate(var(--grok-bot-belt-start, 0deg));
-  }
-  to {
-    transform: rotate(calc(var(--grok-bot-belt-start, 0deg) + 360deg));
-  }
-}
-
+/* Working: faster bob + eye drift — no rainbow belts (CSS can't match x.ai trails). */
 @keyframes grok-bot-work-bob {
   0%,
   100% {
@@ -298,29 +289,13 @@
     transform-origin: center;
     transform-box: fill-box;
   }
-
-  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__belt-orbit {
-    transform-box: fill-box;
-    transform-origin: 114.5px 114.5px;
-    animation: grok-bot-belt-orbit 2.4s linear infinite;
-    animation-delay: var(--grok-bot-belt-delay, 0ms);
-  }
-
-  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__belt-arc {
-    opacity: 0.92;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .grok-bot-lazy > svg,
   .grok-bot-lazy .grok-bot-mark__eyes,
-  .grok-bot-lazy .grok-bot-mark__eye,
-  .grok-bot-lazy .grok-bot-mark__belt-orbit {
+  .grok-bot-lazy .grok-bot-mark__eye {
     animation: none !important;
-  }
-
-  .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__belts {
-    display: none;
   }
 }
 

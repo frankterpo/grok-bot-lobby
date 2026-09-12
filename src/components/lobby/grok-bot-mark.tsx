@@ -1,4 +1,4 @@
-import { useId, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -16,57 +16,6 @@ export const GROK_BOT_MARK_RIGHT_EYE =
 
 const EYE_FILL = "#141414";
 
-/** Head centroid — belt orbits this point. */
-const BELT_CX = 114.5;
-const BELT_CY = 114.5;
-/** Orbit inset from head edge — arcs hug the blob perimeter without crossing the face. */
-const BELT_RX = 92;
-const BELT_RY = 88;
-const BELT_ARC_SWEEP = 70;
-
-/** x.ai working trails: hsl(H 56% L%) stops along each band gradient. */
-const ORBIT_BANDS = [
-  { hue: 214, startDeg: 0, delayMs: 0 },
-  { hue: 297, startDeg: 90, delayMs: 600 },
-  { hue: 13, startDeg: 180, delayMs: 1200 },
-  { hue: 106, startDeg: 270, delayMs: 1800 },
-] as const;
-
-function degToRad(deg: number): number {
-  return (deg * Math.PI) / 180;
-}
-
-/** Elliptical arc segment for one rainbow belt band. */
-function beltArcPath(cx: number, cy: number, rx: number, ry: number, startDeg: number, sweepDeg: number): string {
-  const start = degToRad(startDeg);
-  const end = degToRad(startDeg + sweepDeg);
-  const x1 = cx + rx * Math.cos(start);
-  const y1 = cy + ry * Math.sin(start);
-  const x2 = cx + rx * Math.cos(end);
-  const y2 = cy + ry * Math.sin(end);
-  const largeArc = sweepDeg > 180 ? 1 : 0;
-  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${rx} ${ry} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
-}
-
-function beltGradientEndpoints(
-  cx: number,
-  cy: number,
-  rx: number,
-  ry: number,
-  startDeg: number,
-  sweepDeg: number,
-): { x1: number; y1: number; x2: number; y2: number } {
-  const start = degToRad(startDeg);
-  const end = degToRad(startDeg + sweepDeg);
-  return {
-    x1: cx + rx * Math.cos(start),
-    y1: cy + ry * Math.sin(start),
-    x2: cx + rx * Math.cos(end),
-    y2: cy + ry * Math.sin(end),
-  };
-}
-
-/** Spread idle phase across bots so a grid does not pulse in sync. */
 function restAnimationDelayMs(seed: string): number {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
@@ -75,7 +24,6 @@ function restAnimationDelayMs(seed: string): number {
   return hash % 12000;
 }
 
-/** Match cluster-disc perceived motion: compact ≈24–32px, scale down for larger marks. */
 function restSizeClass(size: number): string | false {
   if (size >= 48) {
     return "grok-bot-mark--rest-large";
@@ -91,7 +39,6 @@ type GrokBotMarkProps = {
   size?: number;
   fill?: boolean;
   animated?: boolean;
-  /** Stable id (e.g. attendee id) for desynced idle phase; defaults to color. */
   restSeed?: string;
   className?: string;
 };
@@ -104,8 +51,6 @@ export function GrokBotMark({
   restSeed,
   className,
 }: GrokBotMarkProps) {
-  const clipId = useId().replace(/:/g, "");
-
   return (
     <span
       aria-hidden
@@ -126,75 +71,12 @@ export function GrokBotMark({
         } as CSSProperties
       }
     >
-      <svg
-        viewBox={GROK_BOT_MARK_VIEWBOX}
-        className="block size-full overflow-visible"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          {animated
-            ? ORBIT_BANDS.map((band, index) => {
-                const grad = beltGradientEndpoints(BELT_CX, BELT_CY, BELT_RX, BELT_RY, 0, BELT_ARC_SWEEP);
-                return (
-                  <linearGradient
-                    key={band.hue}
-                    id={`${clipId}-belt-${index}`}
-                    gradientUnits="userSpaceOnUse"
-                    x1={grad.x1}
-                    y1={grad.y1}
-                    x2={grad.x2}
-                    y2={grad.y2}
-                  >
-                    {[0, 0.25, 0.5, 0.75, 1].map((offset, stopIndex) => {
-                      const hue = (band.hue + stopIndex * 14) % 360;
-                      const lightness = 56 + stopIndex * 3;
-                      return (
-                        <stop
-                          key={offset}
-                          offset={offset.toFixed(3)}
-                          stopColor={`hsl(${hue} 56% ${lightness}%)`}
-                        />
-                      );
-                    })}
-                  </linearGradient>
-                );
-              })
-            : null}
-        </defs>
+      <svg viewBox={GROK_BOT_MARK_VIEWBOX} className="block size-full overflow-visible" xmlns="http://www.w3.org/2000/svg">
         <path className="grok-bot-mark__head" d={GROK_BOT_MARK_HEAD} fill="var(--fg)" />
         <g className="grok-bot-mark__eyes">
           <path className="grok-bot-mark__eye grok-bot-mark__eye--left" d={GROK_BOT_MARK_LEFT_EYE} fill="var(--bg)" />
-          <path
-            className="grok-bot-mark__eye grok-bot-mark__eye--right"
-            d={GROK_BOT_MARK_RIGHT_EYE}
-            fill="var(--bg)"
-          />
+          <path className="grok-bot-mark__eye grok-bot-mark__eye--right" d={GROK_BOT_MARK_RIGHT_EYE} fill="var(--bg)" />
         </g>
-        {animated ? (
-          <g className="grok-bot-mark__belts" aria-hidden>
-            {ORBIT_BANDS.map((band, index) => (
-              <g
-                key={band.hue}
-                className="grok-bot-mark__belt-orbit"
-                style={
-                  {
-                    "--grok-bot-belt-start": `${band.startDeg}deg`,
-                    "--grok-bot-belt-delay": `${band.delayMs}ms`,
-                  } as CSSProperties
-                }
-              >
-                <path
-                  className="grok-bot-mark__belt-arc"
-                  d={beltArcPath(BELT_CX, BELT_CY, BELT_RX, BELT_RY, 0, BELT_ARC_SWEEP)}
-                  fill="none"
-                  stroke={`url(#${clipId}-belt-${index})`}
-                  strokeWidth="17"
-                  strokeLinecap="round"
-                />
-              </g>
-            ))}
-          </g>
-        ) : null}
       </svg>
     </span>
   );
