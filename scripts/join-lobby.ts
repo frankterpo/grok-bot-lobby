@@ -4,7 +4,7 @@
  * Claim a bot, sync a task token, heartbeat until SIGINT.
  */
 
-const HEARTBEAT_MS = 30_000;
+const HEARTBEAT_MS = 60_000;
 
 type ClaimResult = {
   ok?: boolean;

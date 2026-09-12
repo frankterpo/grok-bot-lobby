@@ -111,6 +111,12 @@ export async function lobbyDispatch<T>(op: string, payload: Record<string, unkno
           payload.input as Parameters<LobbyMemory["updatePrefs"]>[1],
           payload.eventId as string,
         ) as T;
+      case "updateProfile":
+        return lobby.updateProfile(
+          payload.actor as Parameters<LobbyMemory["updateProfile"]>[0],
+          payload.eventId as string,
+          payload.profile as Parameters<LobbyMemory["updateProfile"]>[2],
+        ) as T;
       case "getStored":
         return lobby.getStored(payload.eventId as string) as T;
       case "getByCode":
@@ -127,6 +133,8 @@ export async function lobbyDispatch<T>(op: string, payload: Record<string, unkno
         ) as T;
       case "checkClaimRateLimit":
       case "checkCreateEventRateLimit":
+      case "checkSyncRateLimit":
+      case "checkHeartbeatRateLimit":
         return { allowed: true } as T;
       default:
         throw new Error(`Unknown lobby operation: ${op}`);
@@ -134,7 +142,12 @@ export async function lobbyDispatch<T>(op: string, payload: Record<string, unkno
   }
 
   const result = await room.dispatch(op, payload);
-  if (op !== "checkClaimRateLimit") {
+  if (
+    op !== "checkClaimRateLimit" &&
+    op !== "checkCreateEventRateLimit" &&
+    op !== "checkSyncRateLimit" &&
+    op !== "checkHeartbeatRateLimit"
+  ) {
     await room.commit();
   }
   return result as T;

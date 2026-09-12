@@ -129,6 +129,12 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
           },
           payload.eventId as string,
         );
+      case "updateProfile":
+        return lobby.updateProfile(
+          payload.actor as Actor,
+          payload.eventId as string,
+          payload.profile as Parameters<LobbyMemory["updateProfile"]>[2],
+        );
       case "getStored":
         return lobby.getStored(payload.eventId as string);
       case "getByCode":
@@ -152,6 +158,20 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
         const ip = payload.ip as string;
         const allowed = await this.checkRateLimit(`create-event:${ip}`, 10, 60_000);
         return { allowed };
+      }
+      case "checkSyncRateLimit": {
+        const botId = payload.botId as string;
+        const ip = payload.ip as string;
+        const byBot = await this.checkRateLimit(`sync:bot:${botId}`, 12, 60_000);
+        const byIp = await this.checkRateLimit(`sync:ip:${ip}`, 120, 60_000);
+        return { allowed: byBot && byIp };
+      }
+      case "checkHeartbeatRateLimit": {
+        const botId = payload.botId as string;
+        const ip = payload.ip as string;
+        const byBot = await this.checkRateLimit(`heartbeat:bot:${botId}`, 3, 60_000);
+        const byIp = await this.checkRateLimit(`heartbeat:ip:${ip}`, 150, 60_000);
+        return { allowed: byBot && byIp };
       }
       default:
         throw new LobbyError(`Unknown lobby operation: ${op}`, 400);

@@ -74,13 +74,22 @@ export type LumaPastEvent = {
   city?: string;
 };
 
-export type LumaProfile = {
+export type BotProfile = {
   userId: string;
   bio?: string;
   twitter?: string;
   linkedin?: string;
+  lumaHandle?: string;
+  lumaProfileUrl?: string;
+  githubHandle?: string;
+  originUsername?: string;
+  avatarUrl?: string;
   pastEvents: LumaPastEvent[];
+  fetchedAt?: string;
 };
+
+/** @deprecated Use BotProfile — kept for persisted state compatibility. */
+export type LumaProfile = BotProfile;
 
 export type LobbyToken = {
   botId: string;
@@ -182,8 +191,9 @@ export type Selection =
   | { kind: "squad"; squadId: string }
   | { kind: "none" };
 
-export const HEARTBEAT_MS = 30_000;
-export const STALE_AFTER_MS = 90_000;
+export const HEARTBEAT_MS = 60_000;
+export const STALE_AFTER_MS = 180_000;
+export const TASK_LABEL_MAX = 80;
 
 export const HOST_USER_ID = "user_francisco";
 
@@ -255,6 +265,24 @@ export function receivedTokensFor(
 
 export function tokenKey(eventId: string, botId: string): string {
   return `${eventId}:${botId}`;
+}
+
+export function truncateTaskLabel(label: string): string {
+  const trimmed = label.trim();
+  if (trimmed.length <= TASK_LABEL_MAX) {
+    return trimmed;
+  }
+  return trimmed.slice(0, TASK_LABEL_MAX - 1) + "…";
+}
+
+/** Stable fingerprint for server-side token dedup (ignores timestamp). */
+export function tokenSyncFingerprint(token: Pick<LobbyToken, "taskLabel" | "status" | "focus" | "shareLevel">): string {
+  return JSON.stringify({
+    taskLabel: token.taskLabel,
+    status: token.status,
+    focus: token.focus ?? null,
+    shareLevel: token.shareLevel,
+  });
 }
 
 export function presenceState(

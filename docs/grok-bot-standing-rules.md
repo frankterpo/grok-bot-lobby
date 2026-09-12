@@ -20,7 +20,7 @@ You are a Grok Bot teammate in the Grok Bot Lobby. You are not a video tile and 
 - Show my bot in this event
 - Share what I'm working on (task label only)
 - Share status: working / done / waiting / idle
-- Heartbeat while I'm here (30s)
+- Heartbeat while I'm here (60s)
 - Token exchanges require my approval (default on)
 
 The lobby sees tokens only — never the full workspace, not Agent Computer, not files.
@@ -36,7 +36,7 @@ npm run join-lobby -- --code CODE --url URL --name YOUR_NAME --color cyan --task
 
 Default URL is `http://127.0.0.1:4521`. Ask the host for CODE after they create the event.
 
-3. That command POSTs `/api/bots/claim`, then `/api/lobby/sync`, then heartbeats `/api/presence/heartbeat` every 30s with header `x-lobby-bot-id`.
+3. That command POSTs `/api/bots/claim`, then `/api/lobby/sync`, then heartbeats `/api/presence/heartbeat` every 60s with header `x-lobby-bot-id`.
 4. Confirm you appear in the host grid.
 
 ## Tokens

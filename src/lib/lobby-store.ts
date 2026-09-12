@@ -9,19 +9,17 @@ import {
   canResolveExchange,
   canShareEvent,
   canSyncToken,
-  canViewFullToken,
   roleForEvent,
 } from "@/lib/policy";
 import {
   type Actor,
   type Attendee,
   type BotContext,
+  type BotProfile,
   type Event,
   type ExchangeStatus,
-  type IdentitySlot,
   type LobbySnapshot,
   type LobbyToken,
-  type LumaProfile,
   type PresenceRecord,
   type SessionView,
   type ShareLevel,
@@ -29,13 +27,13 @@ import {
   type TokenExchangeRequest,
   type TokenStatus,
   BOT_COLORS,
-  HOST_USER_ID,
-  assertNever,
+  TASK_LABEL_MAX,
   createEventCode,
   createId,
   presenceState,
   receivedTokensFor,
   tokenKey,
+  tokenSyncFingerprint,
 } from "@/lib/domain";
 import { joinUrl } from "@/lib/format";
 import { deriveChecklist } from "@/lib/onboarding";
@@ -43,6 +41,8 @@ import {
   emptyPersistedState,
   type PersistedLobbyState,
 } from "@/lib/lobby-persisted";
+import { eventIdPresence, eventIdTokens, hydrateSquads } from "@/lib/lobby-store-helpers";
+import { presentAttendee, presentEvent, presentToken, shouldPresentToken } from "@/lib/lobby-store-present";
 import { buildSeed, type StoredEvent, type UserPrefs } from "@/lib/seed";
 
 type SnapshotListener = {
@@ -58,6 +58,10 @@ type ClaimInput = {
   shareLevel: ShareLevel;
   hasGrokBot: boolean;
   acceptPermissions: boolean;
+  lumaHandle?: string;
+  lumaProfileUrl?: string;
+  githubHandle?: string;
+  originUsername?: string;
 };
 
 type SyncInput = {
@@ -69,23 +73,12 @@ type SyncInput = {
   shareLevel?: ShareLevel;
 };
 
-function clone<T>(value: T): T {
-  return structuredClone(value);
-}
-
-function hydrateSquads(event: StoredEvent): void {
-  event.squads = event.squads.map((squad) => ({
-    ...squad,
-    members: event.attendees.filter((attendee) => attendee.squadId === squad.id),
-  }));
-}
-
 type EmitFn = (eventId: string) => void;
 
 export class LobbyMemory {
   private events = new Map<string, StoredEvent>();
   private tokens = new Map<string, LobbyToken>();
-  private profiles = new Map<string, LumaProfile>();
+  private profiles = new Map<string, BotProfile>();
   private presence = new Map<string, PresenceRecord>();
   private prefs = new Map<string, UserPrefs>();
   private claimed = new Map<string, Set<string>>();
@@ -183,7 +176,7 @@ export class LobbyMemory {
 
   /** @deprecated Prefer listEventsForActor — never expose all events publicly. */
   listEvents(): Event[] {
-    return [...this.events.values()].map((event) => this.presentEvent(event, null));
+    return [...this.events.values()].map((event) => presentEvent(event, null));
   }
 
   listEventsForActor(actor: Actor): Event[] {
@@ -197,7 +190,7 @@ export class LobbyMemory {
         }
         return event.attendees.some((person) => person.id === actor.userId);
       })
-      .map((event) => this.presentEvent(event, actor.userId));
+      .map((event) => presentEvent(event, actor.userId));
   }
 
   visibleEventsForActor(actor: Actor, activeEventId: string | null): Event[] {
@@ -209,7 +202,7 @@ export class LobbyMemory {
     if (!active) {
       return scoped;
     }
-    return [this.presentEvent(active, actor.userId)];
+    return [presentEvent(active, actor.userId)];
   }
 
   getStored(eventId: string): StoredEvent | null {
@@ -234,11 +227,11 @@ export class LobbyMemory {
         : this.events.size === 1
           ? ([...this.events.values()][0] ?? null)
           : null;
-    const event = stored ? this.presentEvent(stored, args.actor.userId) : null;
+    const event = stored ? presentEvent(stored, args.actor.userId) : null;
     const eventId = stored?.id ?? null;
     const tokens = eventIdTokens(this.tokens, eventId)
-      .filter((token) => this.shouldPresentToken(token, args.actor))
-      .map((token) => this.presentToken(token, args.actor));
+      .filter((token) => shouldPresentToken(token, args.actor, (botId) => this.prefs.get(botId)?.shareTokens))
+      .map((token) => presentToken(token, args.actor));
     const presence = eventIdPresence(this.presence, eventId).map((record) => ({
       ...record,
       state: presenceState(record),
@@ -249,7 +242,7 @@ export class LobbyMemory {
     const profiles = event
       ? event.attendees
           .map((attendee) => this.profiles.get(attendee.id))
-          .filter((profile): profile is LumaProfile => Boolean(profile))
+          .filter((profile): profile is BotProfile => Boolean(profile))
       : [];
     const exchanges = eventId ? this.exchangesFor(eventId) : [];
     const pendingApprovalCount = exchanges.filter((item) => item.status === "pending").length;
@@ -313,7 +306,7 @@ export class LobbyMemory {
     this.claimed.set(id, new Set([actor.userId]));
     this.ensurePresence(id, actor.userId, true);
     this.emit(id);
-    return { event: this.presentEvent(stored, actor.userId), joinUrl: joinUrl(origin, code) };
+    return { event: presentEvent(stored, actor.userId), joinUrl: joinUrl(origin, code) };
   }
 
   markShareCopied(actor: Actor, eventId: string): LobbySnapshot {
@@ -362,10 +355,22 @@ export class LobbyMemory {
       id: userId,
       name,
       botColor: input.botColor,
+      lumaHandle: input.lumaHandle?.trim() || undefined,
+      lumaProfileUrl: input.lumaProfileUrl?.trim() || undefined,
       eventId: stored.id,
       rsvpStatus: "going",
       isCurrentUser: false,
     };
+    if (input.lumaHandle || input.lumaProfileUrl || input.githubHandle || input.originUsername) {
+      this.profiles.set(userId, {
+        userId,
+        lumaHandle: input.lumaHandle?.trim(),
+        lumaProfileUrl: input.lumaProfileUrl?.trim(),
+        githubHandle: input.githubHandle?.trim(),
+        originUsername: input.originUsername?.trim(),
+        pastEvents: [],
+      });
+    }
     stored.attendees = [...stored.attendees, person];
     const claimed = this.claimed.get(stored.id) ?? new Set<string>();
     claimed.add(userId);
@@ -395,17 +400,27 @@ export class LobbyMemory {
     if (!label) {
       throw new LobbyError("Give the token a label.", 400);
     }
+    if (label.length > TASK_LABEL_MAX) {
+      throw new LobbyError(`Task label must be ${TASK_LABEL_MAX} characters or fewer.`, 400);
+    }
     const prefs = this.prefs.get(input.botId);
-    const token: LobbyToken = {
+    const shareLevel = input.shareLevel ?? prefs?.shareLevel ?? "label+status";
+    const next: LobbyToken = {
       botId: input.botId,
       eventId: input.eventId,
       taskLabel: label,
       status: input.status,
       focus: input.focus?.trim() || undefined,
       timestamp: new Date().toISOString(),
-      shareLevel: input.shareLevel ?? prefs?.shareLevel ?? "label+status",
+      shareLevel,
     };
-    this.tokens.set(tokenKey(input.eventId, input.botId), token);
+    const key = tokenKey(input.eventId, input.botId);
+    const existing = this.tokens.get(key);
+    if (existing && tokenSyncFingerprint(existing) === tokenSyncFingerprint(next)) {
+      this.ensurePresence(input.eventId, input.botId, true);
+      return this.snapshot({ eventId: input.eventId, actor: live, origin: "" });
+    }
+    this.tokens.set(key, next);
     const attendee = stored.attendees.find((person) => person.id === input.botId);
     if (attendee) {
       attendee.botTaskLabel = label;
@@ -598,16 +613,36 @@ export class LobbyMemory {
     const rawToken = this.tokens.get(tokenKey(eventId, botId)) ?? null;
     const exchanges = this.exchangesFor(eventId);
     return {
-      attendee: this.presentAttendee(attendee, live.userId),
+      attendee: presentAttendee(attendee, live.userId),
       profile: this.profiles.get(botId) ?? null,
       token:
-        rawToken && this.shouldPresentToken(rawToken, live)
-          ? this.presentToken(rawToken, live)
+        rawToken && shouldPresentToken(rawToken, live, (id) => this.prefs.get(id)?.shareTokens)
+          ? presentToken(rawToken, live)
           : null,
       presence: { ...record, state: presenceState(record) },
       exchanges,
       receivedTokens: receivedTokensFor(exchanges, botId, attendee.squadId),
     };
+  }
+
+  updateProfile(actor: Actor, eventId: string, profile: BotProfile): LobbySnapshot {
+    if (!actor.userId || actor.userId !== profile.userId) {
+      throw new LobbyError("You can only update your own profile.", 403);
+    }
+    const stored = this.requireEvent(eventId);
+    const attendee = stored.attendees.find((person) => person.id === profile.userId);
+    if (!attendee) {
+      throw new LobbyError("No bot with that id in this lobby.", 404);
+    }
+    this.profiles.set(profile.userId, profile);
+    if (profile.lumaHandle) {
+      attendee.lumaHandle = profile.lumaHandle;
+    }
+    if (profile.lumaProfileUrl) {
+      attendee.lumaProfileUrl = profile.lumaProfileUrl;
+    }
+    this.emit(eventId);
+    return this.snapshot({ eventId, actor, origin: "" });
   }
 
   updatePrefs(
@@ -727,57 +762,6 @@ export class LobbyMemory {
     };
   }
 
-  private presentEvent(stored: StoredEvent, currentUserId: string | null): Event {
-    hydrateSquads(stored);
-    return {
-      id: stored.id,
-      name: stored.name,
-      date: stored.date,
-      lumaEventId: stored.lumaEventId,
-      eventCode: stored.eventCode,
-      attendees: stored.attendees.map((person) => this.presentAttendee(person, currentUserId)),
-      squads: stored.squads.map((squad) => ({
-        ...squad,
-        members: squad.members.map((member) => this.presentAttendee(member, currentUserId)),
-      })),
-    };
-  }
-
-  private presentAttendee(attendee: Attendee, currentUserId: string | null): Attendee {
-    return {
-      ...attendee,
-      isCurrentUser: currentUserId !== null && attendee.id === currentUserId,
-    };
-  }
-
-  private shouldPresentToken(token: LobbyToken, actor: Actor): boolean {
-    if (canViewFullToken(actor, token.botId)) {
-      return true;
-    }
-    const prefs = this.prefs.get(token.botId);
-    return prefs?.shareTokens ?? true;
-  }
-
-  private presentToken(token: LobbyToken, actor: Actor): LobbyToken {
-    if (canViewFullToken(actor, token.botId)) {
-      return clone(token);
-    }
-    switch (token.shareLevel) {
-      case "label":
-        return {
-          ...token,
-          status: "idle",
-          focus: undefined,
-        };
-      case "label+status":
-        return { ...token, focus: undefined };
-      case "full":
-        return clone(token);
-      default:
-        return assertNever(token.shareLevel, "share level");
-    }
-  }
-
   private exchangesFor(eventId: string): TokenExchangeRequest[] {
     return [...this.exchanges.values()].filter((item) => item.eventId === eventId);
   }
@@ -800,23 +784,6 @@ export class LobbyError extends Error {
     super(message);
     this.status = status;
   }
-}
-
-function eventIdTokens(tokens: Map<string, LobbyToken>, eventId: string | null): LobbyToken[] {
-  if (!eventId) {
-    return [];
-  }
-  return [...tokens.values()].filter((token) => token.eventId === eventId);
-}
-
-function eventIdPresence(
-  presence: Map<string, PresenceRecord>,
-  eventId: string | null,
-): PresenceRecord[] {
-  if (!eventId) {
-    return [];
-  }
-  return [...presence.values()].filter((record) => record.eventId === eventId);
 }
 
 const globalForLobby = globalThis as typeof globalThis & { __gblLobby?: LobbyMemory };

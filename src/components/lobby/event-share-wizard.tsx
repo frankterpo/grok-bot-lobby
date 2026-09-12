@@ -35,6 +35,7 @@ function buildGuestJoinMessage(code: string, shareUrl: string, publicOrigin: str
     `git clone ${REPO_CLONE_URL}`,
     "cd grok-bot-lobby",
     "npm install",
+    "npx skills add adamanz/grok-bot-skill -g -a cursor",
     `npm run join-lobby -- --code ${code} --url ${publicOrigin} --name Guest --color cyan --task "Joining the lobby"`,
   ].join("\n");
 }

@@ -1,8 +1,10 @@
+import { TASK_LABEL_MAX } from "@/lib/domain";
 import { originFromRequest } from "@/lib/format";
 import { handleError, jsonError, jsonOk, readJson } from "@/lib/http";
 import { actorForBridge } from "@/lib/bot-auth";
 import { lobbyDispatch } from "@/lib/lobby-client";
 import { parseSyncBody } from "@/lib/parsers";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +13,15 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const body = parseSyncBody(await readJson(request));
     if (!body) {
-      return jsonError("Need eventId, botId, taskLabel, and status.", 400);
+      return jsonError(`Need eventId, botId, taskLabel (max ${TASK_LABEL_MAX}), and status.`, 400);
+    }
+    const ip = clientIp(request);
+    const durableLimit = await lobbyDispatch<{ allowed: boolean }>("checkSyncRateLimit", {
+      ip,
+      botId: body.botId,
+    });
+    if (!durableLimit.allowed || !rateLimit(`sync:ip:${ip}`, 120, 60_000)) {
+      return jsonError("Too many sync attempts. Slow down.", 429);
     }
     const actor = await actorForBridge(request, body.eventId);
     await lobbyDispatch("sync", { actor, input: body });

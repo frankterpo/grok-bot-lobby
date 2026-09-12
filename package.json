@@ -10,6 +10,8 @@
     "join-lobby": "node --experimental-strip-types --no-warnings scripts/join-lobby.ts",
     "sync-token": "node --experimental-strip-types --no-warnings scripts/sync-token.ts",
     "propose-exchange": "node --experimental-strip-types --no-warnings scripts/propose-exchange.ts",
+    "load-test-45": "node --experimental-strip-types --no-warnings scripts/load-test-45.ts",
+    "lobby-bridge": "node --experimental-strip-types --no-warnings scripts/lobby-bridge.ts",
     "tunnel": "bash scripts/start-tunnel.sh",
     "tunnel:setup": "bash scripts/setup-tunnel.sh",
     "tunnel:install": "bash scripts/install-tunnel-service.sh",

@@ -2,6 +2,7 @@ import {
   isShareLevel,
   isTokenStatus,
   parseBotColor,
+  TASK_LABEL_MAX,
   type ShareLevel,
   type TokenStatus,
 } from "@/lib/domain";
@@ -14,6 +15,18 @@ export type ClaimBody = {
   shareLevel: ShareLevel;
   hasGrokBot: boolean;
   acceptPermissions: boolean;
+  lumaHandle?: string;
+  lumaProfileUrl?: string;
+  githubHandle?: string;
+  originUsername?: string;
+};
+
+export type ProfileBody = {
+  eventId: string;
+  lumaHandle?: string;
+  lumaProfileUrl?: string;
+  githubHandle?: string;
+  originUsername?: string;
 };
 
 export type SyncBody = {
@@ -96,6 +109,27 @@ export function parseClaimBody(value: unknown): ClaimBody | null {
     shareLevel: shareLevelRaw,
     hasGrokBot,
     acceptPermissions,
+    lumaHandle: asString(value.lumaHandle) ?? undefined,
+    lumaProfileUrl: asString(value.lumaProfileUrl) ?? undefined,
+    githubHandle: asString(value.githubHandle) ?? undefined,
+    originUsername: asString(value.originUsername) ?? undefined,
+  };
+}
+
+export function parseProfileBody(value: unknown): ProfileBody | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const eventId = asString(value.eventId);
+  if (!eventId) {
+    return null;
+  }
+  return {
+    eventId,
+    lumaHandle: asString(value.lumaHandle) ?? undefined,
+    lumaProfileUrl: asString(value.lumaProfileUrl) ?? undefined,
+    githubHandle: asString(value.githubHandle) ?? undefined,
+    originUsername: asString(value.originUsername) ?? undefined,
   };
 }
 
@@ -110,6 +144,9 @@ export function parseSyncBody(value: unknown): SyncBody | null {
   const focus = asString(value.focus) ?? undefined;
   const shareRaw = asString(value.shareLevel);
   if (!eventId || !botId || !taskLabel || !statusRaw || !isTokenStatus(statusRaw)) {
+    return null;
+  }
+  if (taskLabel.length > TASK_LABEL_MAX) {
     return null;
   }
   if (shareRaw && !isShareLevel(shareRaw)) {
