@@ -115,82 +115,61 @@
   fill: var(--bg);
 }
 
-/* Resting: subtle breathe, alternating blinks, occasional look-away. */
+/* Resting: mostly still — faint breathe, rare blink, occasional glance. */
 @keyframes grok-bot-rest-breathe {
   0%,
   100% {
     transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: translateY(-2.5%) rotate(-0.8deg);
+    transform: translateY(-0.35%) rotate(-0.12deg);
   }
 }
 
 @keyframes grok-bot-rest-look {
   0%,
-  14%,
+  86%,
   100% {
     transform: translate(0, 0);
   }
-  22%,
-  34% {
-    transform: translate(4%, -1.5%);
-  }
-  44%,
-  56% {
-    transform: translate(-3%, 1.5%);
-  }
-  66%,
-  78% {
-    transform: translate(2%, 2%);
-  }
-  86%,
-  94% {
-    transform: translate(-1.5%, -1%);
+  90%,
+  93% {
+    transform: translate(2%, -0.8%);
   }
 }
 
 @keyframes grok-bot-rest-blink-left {
   0%,
-  41%,
-  45%,
+  83%,
+  85%,
   100% {
     transform: scaleY(1);
   }
-  43% {
-    transform: scaleY(0.06);
+  84% {
+    transform: scaleY(0.08);
   }
 }
 
 @keyframes grok-bot-rest-blink-right {
   0%,
-  67%,
-  71%,
+  91%,
+  93%,
   100% {
     transform: scaleY(1);
   }
-  69% {
-    transform: scaleY(0.06);
+  92% {
+    transform: scaleY(0.08);
   }
 }
 
-/* Working: faster bob and more active eye motion. */
+/* Working: gently active — not frantic. */
 @keyframes grok-bot-work-bob {
   0%,
   100% {
     transform: scale(1) rotate(0deg);
   }
-  20% {
-    transform: scale(1.04) rotate(-2deg);
-  }
-  40% {
-    transform: scale(0.98) rotate(1.5deg);
-  }
-  60% {
-    transform: scale(1.05) rotate(0.5deg);
-  }
-  80% {
-    transform: scale(1.01) rotate(-1deg);
+  50% {
+    transform: scale(1.012) rotate(-0.6deg);
   }
 }
 
@@ -199,56 +178,59 @@
   100% {
     transform: translate(0, 0);
   }
-  25% {
-    transform: translate(5%, -3%);
+  35% {
+    transform: translate(2.5%, -1.2%);
   }
-  50% {
-    transform: translate(-4%, 2%);
-  }
-  75% {
-    transform: translate(3%, 3%);
+  70% {
+    transform: translate(-2%, 0.8%);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) > svg {
-    animation: grok-bot-rest-breathe 5.2s ease-in-out infinite;
+    animation: grok-bot-rest-breathe 10s ease-in-out infinite;
+    animation-delay: var(--grok-bot-rest-delay, 0ms);
     transform-origin: center;
-    will-change: transform;
   }
 
   .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eyes {
-    animation: grok-bot-rest-look 8.4s cubic-bezier(0.3, 0.7, 0.25, 1) infinite;
+    animation: grok-bot-rest-look 24s ease-in-out infinite;
+    animation-delay: var(--grok-bot-rest-delay, 0ms);
     transform-origin: center;
     transform-box: fill-box;
-    will-change: transform;
   }
 
   .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--left {
-    animation: grok-bot-rest-blink-left 5.8s linear infinite;
+    animation: grok-bot-rest-blink-left 14s linear infinite;
+    animation-delay: var(--grok-bot-rest-delay, 0ms);
     transform-origin: center;
     transform-box: fill-box;
-    will-change: transform;
   }
 
   .grok-bot-lazy.grok-bot-mark--fill:not(.grok-bot-mark--working) .grok-bot-mark__eye--right {
-    animation: grok-bot-rest-blink-right 6.4s linear infinite;
+    animation: grok-bot-rest-blink-right 17s linear infinite;
+    animation-delay: calc(var(--grok-bot-rest-delay, 0ms) + 2.4s);
     transform-origin: center;
     transform-box: fill-box;
-    will-change: transform;
   }
 
   .grok-bot-lazy.grok-bot-mark--working > svg {
-    animation: grok-bot-work-bob 0.85s ease-in-out infinite;
+    animation: grok-bot-work-bob 2.6s ease-in-out infinite;
     transform-origin: center;
-    will-change: transform;
   }
 
   .grok-bot-lazy.grok-bot-mark--working .grok-bot-mark__eyes {
-    animation: grok-bot-work-eye 0.95s ease-in-out infinite;
+    animation: grok-bot-work-eye 2.2s ease-in-out infinite;
     transform-origin: center;
     transform-box: fill-box;
-    will-change: transform;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grok-bot-lazy > svg,
+  .grok-bot-lazy .grok-bot-mark__eyes,
+  .grok-bot-lazy .grok-bot-mark__eye {
+    animation: none !important;
   }
 }
 

@@ -16,6 +16,15 @@ export const GROK_BOT_MARK_RIGHT_EYE =
 
 const EYE_FILL = "#141414";
 
+/** Spread idle phase across bots so a grid does not pulse in sync. */
+function restAnimationDelayMs(seed: string): number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return hash % 12000;
+}
+
 type GrokBotMarkProps = {
   color: string;
   size?: number;
@@ -46,6 +55,7 @@ export function GrokBotMark({
           height: size,
           "--fg": color,
           "--bg": EYE_FILL,
+          "--grok-bot-rest-delay": `${restAnimationDelayMs(color)}ms`,
         } as CSSProperties
       }
     >
