@@ -123,6 +123,7 @@ export type Actor = {
   slot: IdentitySlot;
   userId: string | null;
   role: SessionRole;
+  hostAuthenticated?: boolean;
 };
 
 export type SessionView = {

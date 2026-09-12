@@ -6,8 +6,10 @@ import {
   type Actor,
   type IdentitySlot,
 } from "@/lib/domain";
+import { hostSessionFromRequest } from "@/lib/host-auth";
 import { ATTENDEE_COOKIE, HOST_COOKIE, SLOT_HEADER } from "@/lib/identity";
 import { lobbyDispatch } from "@/lib/lobby-client";
+import { LobbyError } from "@/lib/lobby-store";
 import type { StoredEvent } from "@/lib/seed";
 
 export { ATTENDEE_COOKIE, HOST_COOKIE, SLOT_HEADER };
@@ -16,7 +18,7 @@ export function parseSlot(value: string | null): IdentitySlot {
   if (value && isIdentitySlot(value)) {
     return value;
   }
-  return "you";
+  return "attendee";
 }
 
 export function slotFromRequest(request: Request): IdentitySlot {
@@ -24,9 +26,12 @@ export function slotFromRequest(request: Request): IdentitySlot {
   return parseSlot(request.headers.get(SLOT_HEADER) ?? url.searchParams.get("as"));
 }
 
-export async function userIdForSlot(slot: IdentitySlot): Promise<string | null> {
+export async function userIdForSlot(slot: IdentitySlot, hostAuthenticated: boolean): Promise<string | null> {
   const jar = await cookies();
   if (slot === "you") {
+    if (!hostAuthenticated) {
+      return null;
+    }
     return jar.get(HOST_COOKIE)?.value ?? HOST_USER_ID;
   }
   return jar.get(ATTENDEE_COOKIE)?.value ?? null;
@@ -47,10 +52,13 @@ export async function actorFromRequest(
   eventId?: string,
   code?: string,
 ): Promise<Actor> {
-  const slot = slotFromRequest(request);
-  const userId = await userIdForSlot(slot);
+  const requestedSlot = slotFromRequest(request);
+  const hostSession = await hostSessionFromRequest(request);
+  const hostAuthenticated = hostSession !== null;
+  const slot = requestedSlot === "you" && !hostAuthenticated ? "attendee" : requestedSlot;
+  const userId = await userIdForSlot(slot === "you" ? "you" : slot, hostAuthenticated);
   const stored = await resolveStoredEvent(eventId, code);
-  return lobbyDispatch<Actor>("actor", { slot, userId, stored });
+  return lobbyDispatch<Actor>("actor", { slot, userId, stored, hostAuthenticated });
 }
 
 export async function writeIdentityCookie(slot: IdentitySlot, userId: string): Promise<void> {
@@ -67,4 +75,12 @@ export async function writeIdentityCookie(slot: IdentitySlot, userId: string): P
 export function cookieSetter(slot: IdentitySlot, userId: string): string {
   const name = slot === "you" ? HOST_COOKIE : ATTENDEE_COOKIE;
   return `${name}=${userId}; Path=/; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax; HttpOnly`;
+}
+
+export async function requireHostActor(request: Request, eventId?: string, code?: string): Promise<Actor> {
+  const actor = await actorFromRequest(request, eventId, code);
+  if (!actor.hostAuthenticated || actor.role !== "host") {
+    throw new LobbyError("Host authentication required.", 403);
+  }
+  return actor;
 }

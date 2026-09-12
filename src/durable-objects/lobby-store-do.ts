@@ -135,13 +135,22 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
         return lobby.getByCode(payload.code as string);
       case "actor":
         return lobby.actor(
-          payload.slot as Actor["slot"],
-          (payload.userId as string | null) ?? null,
-          payload.stored as Parameters<LobbyMemory["actor"]>[2],
+          {
+            slot: payload.slot as Actor["slot"],
+            userId: (payload.userId as string | null) ?? null,
+            role: "guest",
+            hostAuthenticated: payload.hostAuthenticated === true,
+          },
+          payload.stored as Parameters<LobbyMemory["actor"]>[1],
         );
       case "checkClaimRateLimit": {
         const ip = payload.ip as string;
         const allowed = await this.checkRateLimit(`claim:${ip}`, 20, 60_000);
+        return { allowed };
+      }
+      case "checkCreateEventRateLimit": {
+        const ip = payload.ip as string;
+        const allowed = await this.checkRateLimit(`create-event:${ip}`, 10, 60_000);
         return { allowed };
       }
       default:

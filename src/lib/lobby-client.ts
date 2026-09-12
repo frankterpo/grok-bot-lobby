@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import type { LobbyStoreDO } from "@/durable-objects/lobby-store-do";
+import type { Actor } from "@/lib/domain";
 import { getLobby, type LobbyMemory } from "@/lib/lobby-store";
 
 const STORE_NAME = "primary";
@@ -116,11 +117,16 @@ export async function lobbyDispatch<T>(op: string, payload: Record<string, unkno
         return lobby.getByCode(payload.code as string) as T;
       case "actor":
         return lobby.actor(
-          payload.slot as Parameters<LobbyMemory["actor"]>[0],
-          (payload.userId as string | null) ?? null,
-          payload.stored as Parameters<LobbyMemory["actor"]>[2],
+          {
+            slot: payload.slot as Actor["slot"],
+            userId: (payload.userId as string | null) ?? null,
+            role: "guest",
+            hostAuthenticated: payload.hostAuthenticated === true,
+          },
+          payload.stored as Parameters<LobbyMemory["actor"]>[1],
         ) as T;
       case "checkClaimRateLimit":
+      case "checkCreateEventRateLimit":
         return { allowed: true } as T;
       default:
         throw new Error(`Unknown lobby operation: ${op}`);

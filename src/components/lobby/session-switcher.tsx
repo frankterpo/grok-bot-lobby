@@ -19,18 +19,27 @@ type SessionSwitcherProps = {
 
 export function SessionSwitcher({ session }: SessionSwitcherProps) {
   const router = useRouter();
+  const isHost = session.role === "host";
 
   function go(slot: IdentitySlot): void {
     writeSlot(slot);
-    if (slot === "attendee" && !session.claimed) {
+    if (slot === "you") {
+      if (!isHost) {
+        router.push("/host");
+        return;
+      }
+      router.push("/");
+      return;
+    }
+    if (!session.claimed) {
       const code = rememberedJoinCode();
       router.push(code ? `/join/${code}` : "/join");
       return;
     }
-    router.push(slot === "you" ? "/?as=you" : "/?as=attendee");
+    router.push("/");
   }
 
-  const label = session.slot === "you" ? "Francisco · YOU" : session.userId ? "Attendee" : "Join as attendee";
+  const label = isHost ? "Host" : session.userId ? "Attendee" : "Guest";
 
   return (
     <DropdownMenu>
@@ -43,7 +52,9 @@ export function SessionSwitcher({ session }: SessionSwitcherProps) {
         <ChevronDown className="size-3" strokeWidth={1.5} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-44 bg-[#161616] text-[12px]">
-        <DropdownMenuItem onClick={() => go("you")}>Francisco · YOU</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => go("you")}>
+          {isHost ? "Host panel" : "Sign in as host"}
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => go("attendee")}>Attendee</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -12,7 +12,7 @@ export async function GET(request: Request): Promise<Response> {
     const eventId = url.searchParams.get("eventId") ?? undefined;
     const code = url.searchParams.get("code") ?? undefined;
     const actor = await actorFromRequest(request, eventId, code);
-    if (actor.slot === "you" && actor.userId) {
+    if (actor.hostAuthenticated && actor.slot === "you" && actor.userId) {
       await writeIdentityCookie("you", actor.userId);
     }
     const snapshot = await lobbyDispatch("snapshot", {

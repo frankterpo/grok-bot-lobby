@@ -23,5 +23,7 @@ enabled = true
 
 [vars]
 # Set in Cloudflare dashboard after deploy, or via wrangler secret:
+# HOST_SECRET — REQUIRED for production host access:
+#   npx wrangler secret put HOST_SECRET
 # LOBBY_PUBLIC_URL = "https://grok-bot-lobby.pages.dev"
 # NEXT_PUBLIC_LOBBY_PUBLIC_URL = "https://grok-bot-lobby.pages.dev"

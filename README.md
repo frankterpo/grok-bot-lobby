@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:4521](http://127.0.0.1:4521) (`?as=you`). Port **4521**. **Create an event** — you get a unique code and join URL immediately. Share **code + URL** with guests.
+Open [http://127.0.0.1:4521/host](http://127.0.0.1:4521/host). Port **4521**. Sign in with your host secret (see `.env.local.example`), then **create an event** — you get a unique code and join URL immediately. Share **code + URL** with guests.
 
 No Clerk / Supabase / Luma credentials required.
 
@@ -53,7 +53,7 @@ Standing rules (paste into `grokbot.py create --description`): [`docs/grok-bot-s
 **Host (Francisco) — browser**
 
 1. `npm run dev`
-2. Open [http://127.0.0.1:4521/?as=you](http://127.0.0.1:4521/?as=you) → **Create event** (name + date)
+2. Open [http://127.0.0.1:4521/host](http://127.0.0.1:4521/host) → enter host secret → **Create event** (name + date)
 3. Copy the generated **CODE · copy join link** chip (full `/join/CODE` URL)
 4. Tell the guest: *Join lobby CODE at http://127.0.0.1:4521*
 
@@ -114,7 +114,7 @@ python3 ~/.agents/skills/grok-bot/scripts/grokbot.py create \
 | --- | --- |
 | Blank grid | Host must create an event first. join-lobby must hit the same origin/port with the host's code. |
 | Token not updating | Same `eventId`. SSE `/api/lobby/stream`. Pending exchanges are hidden until Approve. |
-| Both sessions showing YOU | Host `?as=you`. Bots use `x-lobby-bot-id`, not the website form. |
+| Both sessions showing host | Host signs in at `/host`. Bots use `x-lobby-bot-id`, not the website form. |
 | Bad event code | Copy the code from the host's event card after they create the lobby. |
 | Claim becomes Francisco | Bridge uses attendee slot + `x-lobby-bot-id`. Don't omit `--name`. |
 

@@ -7,16 +7,16 @@ export const EVENT_STORAGE_KEY = "gbl_event";
 
 export function readSlot(): IdentitySlot {
   if (typeof window === "undefined") {
-    return "you";
+    return "attendee";
   }
   const params = new URLSearchParams(window.location.search);
   const fromQuery = params.get("as");
-  if (fromQuery === "attendee" || fromQuery === "you") {
+  if (fromQuery === "attendee") {
     window.sessionStorage.setItem(SLOT_STORAGE_KEY, fromQuery);
     return fromQuery;
   }
   const stored = window.sessionStorage.getItem(SLOT_STORAGE_KEY);
-  return stored === "attendee" ? "attendee" : "you";
+  return stored === "you" ? "you" : "attendee";
 }
 
 export function writeSlot(slot: IdentitySlot): void {

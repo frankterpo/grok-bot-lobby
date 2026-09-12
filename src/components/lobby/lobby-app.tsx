@@ -77,7 +77,7 @@ export function LobbyApp() {
     const stored = window.sessionStorage.getItem(ONBOARD_STORAGE_KEY);
     const params = new URLSearchParams(window.location.search);
     const as = params.get("as");
-    if (as === "you" || as === "attendee") {
+    if (as === "attendee") {
       writeSlot(as);
     }
     if (as === "attendee" || stored === "1") {
@@ -92,10 +92,14 @@ export function LobbyApp() {
     if (loading || !snapshot || createOpen || !onboarded) {
       return;
     }
-    if (readSlot() === "you" && snapshot.events.length === 0) {
+    if (readSlot() === "you" && snapshot.session.role !== "host") {
+      router.replace("/host");
+      return;
+    }
+    if (snapshot.session.role === "host" && snapshot.events.length === 0) {
       setCreateOpen(true);
     }
-  }, [loading, snapshot, createOpen, onboarded]);
+  }, [loading, snapshot, createOpen, onboarded, router]);
 
   useEffect(() => {
     if (!eventId) {
@@ -247,13 +251,12 @@ export function LobbyApp() {
           onOpenLobby={() => {
             window.sessionStorage.setItem(ONBOARD_STORAGE_KEY, "1");
             setOnboarded(true);
-            writeSlot("you");
-            router.replace("/?as=you");
+            router.replace("/host");
           }}
           onCreate={() => {
             window.sessionStorage.setItem(ONBOARD_STORAGE_KEY, "1");
             setOnboarded(true);
-            setCreateOpen(true);
+            router.replace("/host");
           }}
           onJoin={() => {
             window.sessionStorage.setItem(ONBOARD_STORAGE_KEY, "1");
@@ -285,8 +288,9 @@ export function LobbyApp() {
         <div className="max-w-sm rounded-lg border border-[#262626] bg-[#111] p-4 text-[12px] text-white/70">
           <p>{error}</p>
           <p className="mt-2 text-white/40">
-            Bad event code? Ask the host to copy the join link. Both sessions showing YOU? Open one tab with
-            `?as=you` and the other with `?as=attendee`.
+            Bad event code? Ask the host to copy the join link. Hosts sign in at{" "}
+            <span className="font-mono text-white/50">/host</span>; attendees use{" "}
+            <span className="font-mono text-white/50">/join/CODE</span>.
           </p>
         </div>
       </div>

@@ -14,11 +14,11 @@ export function roleForEvent(userId: string | null, hostUserId: string, event: E
 }
 
 export function canCreateEvent(actor: Actor): boolean {
-  return actor.slot === "you";
+  return actor.hostAuthenticated === true && actor.role === "host";
 }
 
 export function canShareEvent(actor: Actor): boolean {
-  return actor.role === "host";
+  return actor.hostAuthenticated === true && actor.role === "host";
 }
 
 export function canClaimBot(actor: Actor, event: Event): boolean {

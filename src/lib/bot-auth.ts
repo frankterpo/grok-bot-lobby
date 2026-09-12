@@ -25,14 +25,24 @@ export async function actorForBridge(
       : null;
 
   if (botId) {
-    return lobbyDispatch<Actor>("actor", { slot: "attendee", userId: botId, stored });
+    return lobbyDispatch<Actor>("actor", {
+      slot: "attendee",
+      userId: botId,
+      stored,
+      hostAuthenticated: false,
+    });
   }
 
   const asAttendee = request.headers.get(SLOT_HEADER) === "attendee" || url.searchParams.get("as") === "attendee";
   if (asAttendee) {
     const jar = await cookies();
     const userId = jar.get(ATTENDEE_COOKIE)?.value ?? null;
-    return lobbyDispatch<Actor>("actor", { slot: "attendee", userId, stored });
+    return lobbyDispatch<Actor>("actor", {
+      slot: "attendee",
+      userId,
+      stored,
+      hostAuthenticated: false,
+    });
   }
 
   return actorFromRequest(request, eventId, eventCode);
@@ -43,5 +53,10 @@ export async function actorForClaim(request: Request, eventCode: string): Promis
   const jar = await cookies();
   const userId = botId ?? jar.get(ATTENDEE_COOKIE)?.value ?? null;
   const stored = await lobbyDispatch("getByCode", { code: eventCode });
-  return lobbyDispatch<Actor>("actor", { slot: "attendee", userId, stored });
+  return lobbyDispatch<Actor>("actor", {
+    slot: "attendee",
+    userId,
+    stored,
+    hostAuthenticated: false,
+  });
 }

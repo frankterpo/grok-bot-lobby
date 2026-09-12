@@ -168,16 +168,17 @@ export class LobbyMemory {
     this.exchanges = restored.exchanges;
   }
 
-  actor(slot: IdentitySlot, userId: string | null, event: StoredEvent | null): Actor {
+  actor(input: Actor, event: StoredEvent | null): Actor {
+    const { slot, userId, hostAuthenticated = false } = input;
     if (!event) {
-      const role = slot === "you" && userId === HOST_USER_ID ? "host" : userId ? "guest" : "guest";
-      return { slot, userId, role };
+      const role = hostAuthenticated && userId ? "host" : userId ? "guest" : "guest";
+      return { slot, userId, role, hostAuthenticated };
     }
-    return {
-      slot,
-      userId,
-      role: roleForEvent(userId, event.hostUserId, event),
-    };
+    let role = roleForEvent(userId, event.hostUserId, event);
+    if (role === "host" && !hostAuthenticated) {
+      role = event.attendees.some((person) => person.id === userId) ? "attendee" : "guest";
+    }
+    return { slot, userId, role, hostAuthenticated };
   }
 
   /** @deprecated Prefer listEventsForActor — never expose all events publicly. */
@@ -317,7 +318,7 @@ export class LobbyMemory {
 
   markShareCopied(actor: Actor, eventId: string): LobbySnapshot {
     const stored = this.requireEvent(eventId);
-    if (!canShareEvent(this.actor(actor.slot, actor.userId, stored))) {
+    if (!canShareEvent(this.actor(actor, stored))) {
       throw new LobbyError("Only the host can share this lobby.", 403);
     }
     this.shareCopied.add(eventId);
@@ -330,7 +331,7 @@ export class LobbyMemory {
     if (!stored) {
       throw new LobbyError("That code isn't a live lobby. Ask the host to copy the join link again.", 404);
     }
-    const liveActor = this.actor(actor.slot, actor.userId, stored);
+    const liveActor = this.actor(actor, stored);
     const byName = stored.attendees.find(
       (person) =>
         person.name.toLowerCase() === input.name.trim().toLowerCase() &&
@@ -386,7 +387,7 @@ export class LobbyMemory {
 
   sync(actor: Actor, input: SyncInput): LobbySnapshot {
     const stored = this.requireEvent(input.eventId);
-    const live = this.actor(actor.slot, actor.userId, stored);
+    const live = this.actor(actor, stored);
     if (!canSyncToken(live, input.botId)) {
       throw new LobbyError("You can only sync your own bot token.", 403);
     }
@@ -419,7 +420,7 @@ export class LobbyMemory {
 
   heartbeat(actor: Actor, eventId: string, botId: string): LobbySnapshot {
     const stored = this.requireEvent(eventId);
-    const live = this.actor(actor.slot, actor.userId, stored);
+    const live = this.actor(actor, stored);
     if (!canHeartbeat(live, botId)) {
       throw new LobbyError("You can only heartbeat your own bot.", 403);
     }
@@ -430,7 +431,7 @@ export class LobbyMemory {
 
   invite(actor: Actor, eventId: string, attendeeId: string, squadId?: string): LobbySnapshot {
     const stored = this.requireEvent(eventId);
-    const live = this.actor(actor.slot, actor.userId, stored);
+    const live = this.actor(actor, stored);
     const target = stored.attendees.find((person) => person.id === attendeeId);
     if (!target) {
       throw new LobbyError("That attendee isn't in this lobby.", 404);
@@ -460,7 +461,7 @@ export class LobbyMemory {
 
   requestJoin(actor: Actor, eventId: string, squadId: string): LobbySnapshot {
     const stored = this.requireEvent(eventId);
-    const live = this.actor(actor.slot, actor.userId, stored);
+    const live = this.actor(actor, stored);
     if (!live.userId) {
       throw new LobbyError("Claim your bot before requesting a squad.", 403);
     }
@@ -478,7 +479,7 @@ export class LobbyMemory {
 
   leaveSquad(actor: Actor, eventId: string, squadId?: string): LobbySnapshot {
     const stored = this.requireEvent(eventId);
-    const live = this.actor(actor.slot, actor.userId, stored);
+    const live = this.actor(actor, stored);
     if (!live.userId) {
       throw new LobbyError("Claim your bot before leaving a squad.", 403);
     }
@@ -519,7 +520,7 @@ export class LobbyMemory {
     },
   ): LobbySnapshot {
     const stored = this.requireEvent(input.eventId);
-    const live = this.actor(actor.slot, actor.userId, stored);
+    const live = this.actor(actor, stored);
     if (!canProposeExchange(live, input.fromBotId)) {
       throw new LobbyError("You can only propose a token from your own bot.", 403);
     }
@@ -563,7 +564,7 @@ export class LobbyMemory {
       throw new LobbyError("Resolve with approved or rejected.", 400);
     }
     const stored = this.requireEvent(eventId);
-    const live = this.actor(actor.slot, actor.userId, stored);
+    const live = this.actor(actor, stored);
     const request = this.exchanges.get(requestId);
     if (!request || request.eventId !== eventId) {
       throw new LobbyError("No token exchange with that id.", 404);
@@ -587,7 +588,7 @@ export class LobbyMemory {
     if (!attendee) {
       throw new LobbyError("No bot with that id in this lobby.", 404);
     }
-    const live = this.actor(actor.slot, actor.userId, stored);
+    const live = this.actor(actor, stored);
     const record = this.presence.get(tokenKey(eventId, botId)) ?? {
       userId: botId,
       eventId,
