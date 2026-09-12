@@ -7,7 +7,8 @@ import {
   type IdentitySlot,
 } from "@/lib/domain";
 import { ATTENDEE_COOKIE, HOST_COOKIE, SLOT_HEADER } from "@/lib/identity";
-import { getLobby } from "@/lib/lobby-store";
+import { lobbyDispatch } from "@/lib/lobby-client";
+import type { StoredEvent } from "@/lib/seed";
 
 export { ATTENDEE_COOKIE, HOST_COOKIE, SLOT_HEADER };
 
@@ -31,6 +32,16 @@ export async function userIdForSlot(slot: IdentitySlot): Promise<string | null> 
   return jar.get(ATTENDEE_COOKIE)?.value ?? null;
 }
 
+async function resolveStoredEvent(eventId?: string, code?: string): Promise<StoredEvent | null> {
+  if (eventId) {
+    return lobbyDispatch<StoredEvent | null>("getStored", { eventId });
+  }
+  if (code) {
+    return lobbyDispatch<StoredEvent | null>("getByCode", { code });
+  }
+  return null;
+}
+
 export async function actorFromRequest(
   request: Request,
   eventId?: string,
@@ -38,15 +49,8 @@ export async function actorFromRequest(
 ): Promise<Actor> {
   const slot = slotFromRequest(request);
   const userId = await userIdForSlot(slot);
-  const lobby = getLobby();
-  const stored = eventId
-    ? lobby.getStored(eventId)
-    : code
-      ? lobby.getByCode(code)
-      : lobby.listEvents().length === 1
-        ? lobby.getStored(lobby.listEvents()[0]!.id)
-        : null;
-  return lobby.actor(slot, userId, stored);
+  const stored = await resolveStoredEvent(eventId, code);
+  return lobbyDispatch<Actor>("actor", { slot, userId, stored });
 }
 
 export async function writeIdentityCookie(slot: IdentitySlot, userId: string): Promise<void> {

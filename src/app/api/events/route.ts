@@ -1,6 +1,6 @@
 import { originFromRequest } from "@/lib/format";
 import { handleError, jsonCreated, jsonError, jsonOk, readJson } from "@/lib/http";
-import { getLobby } from "@/lib/lobby-store";
+import { lobbyDispatch } from "@/lib/lobby-client";
 import { parseEventCreateBody } from "@/lib/parsers";
 import { actorFromRequest, writeIdentityCookie } from "@/lib/session";
 
@@ -17,7 +17,12 @@ export async function POST(request: Request): Promise<Response> {
     if (actor.userId) {
       await writeIdentityCookie("you", actor.userId);
     }
-    const result = getLobby().createEvent(actor, body.name, body.date, originFromRequest(request));
+    const result = await lobbyDispatch("createEvent", {
+      actor,
+      name: body.name,
+      date: body.date,
+      origin: originFromRequest(request),
+    });
     return jsonCreated(result);
   } catch (error) {
     return handleError(error);
@@ -27,7 +32,11 @@ export async function POST(request: Request): Promise<Response> {
 export async function GET(request: Request): Promise<Response> {
   try {
     const actor = await actorFromRequest(request);
-    return jsonOk(getLobby().snapshot({ actor, origin: originFromRequest(request) }));
+    const snapshot = await lobbyDispatch("snapshot", {
+      actor,
+      origin: originFromRequest(request),
+    });
+    return jsonOk(snapshot);
   } catch (error) {
     return handleError(error);
   }

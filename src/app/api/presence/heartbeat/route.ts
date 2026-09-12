@@ -1,7 +1,7 @@
 import { originFromRequest } from "@/lib/format";
 import { handleError, jsonError, jsonOk, readJson } from "@/lib/http";
 import { actorForBridge } from "@/lib/bot-auth";
-import { getLobby } from "@/lib/lobby-store";
+import { lobbyDispatch } from "@/lib/lobby-client";
 import { parseHeartbeatBody } from "@/lib/parsers";
 
 export const runtime = "nodejs";
@@ -14,9 +14,9 @@ export async function POST(request: Request): Promise<Response> {
       return jsonError("Need eventId and botId.", 400);
     }
     const actor = await actorForBridge(request, body.eventId);
-    getLobby().heartbeat(actor, body.eventId, body.botId);
+    await lobbyDispatch("heartbeat", { actor, eventId: body.eventId, botId: body.botId });
     return jsonOk(
-      getLobby().snapshot({
+      await lobbyDispatch("snapshot", {
         eventId: body.eventId,
         actor,
         origin: originFromRequest(request),

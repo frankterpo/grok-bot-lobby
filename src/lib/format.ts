@@ -55,6 +55,12 @@ export function isLoopbackHost(host: string): boolean {
   return bare === "localhost" || bare === "127.0.0.1" || bare === "[::1]";
 }
 
+/** Cloudflare Pages / Workers default hostnames — shareable without custom domain. */
+export function isCloudflareDeployHost(host: string): boolean {
+  const bare = host.split(",")[0]!.trim().split(":")[0]!.toLowerCase();
+  return bare.endsWith(".pages.dev") || bare.endsWith(".workers.dev");
+}
+
 export function isLoopbackOrigin(origin: string): boolean {
   try {
     return isLoopbackHost(new URL(origin).host);
@@ -177,7 +183,14 @@ export type PublicUrlStatus = {
 /** Server-side public URL readiness for share wizard and polling. */
 export function getPublicUrlStatus(options?: { request?: Request; code?: string }): PublicUrlStatus {
   const { baseUrl, isRemoteShareable, source } = getLobbyBaseUrl(options);
-  const shareable = source === "env" && isRemoteShareable;
+  let hostname = "";
+  try {
+    hostname = new URL(baseUrl).hostname;
+  } catch {
+    // ignore
+  }
+  const deployedHost = isCloudflareDeployHost(hostname);
+  const shareable = isRemoteShareable && (source === "env" || deployedHost);
   const code = options?.code?.trim().toUpperCase();
   const path = code ? joinPath(code) : "/join";
   return {

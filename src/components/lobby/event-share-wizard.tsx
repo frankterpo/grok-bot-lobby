@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Check, Circle, Copy, Link2, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Circle, Cloud, Copy, Link2, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ type EventShareWizardProps = {
   onDone?: () => void;
 };
 
+const DEPLOY_COMMAND = "npm run deploy";
+const WRANGLER_LOGIN = "npx wrangler login";
 const TUNNEL_INSTALL_COMMAND = "npm run tunnel:install";
 const DEV_RESTART_COMMAND = "npm run dev";
 
@@ -152,6 +154,7 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
   const [polling, setPolling] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [messageCopied, setMessageCopied] = useState(false);
+  const [showTunnel, setShowTunnel] = useState(false);
 
   const [hostnameInput, setHostnameInput] = useState("");
   const [envPreview, setEnvPreview] = useState<string | null>(null);
@@ -194,7 +197,7 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
     try {
       return new URL(shareUrl).origin;
     } catch {
-      return "https://lobby.YOUR_ZONE";
+      return "https://grok-bot-lobby.workers.dev";
     }
   }, [shareable, publicStatus?.publicUrl, previewPublicUrl, shareUrl]);
 
@@ -358,98 +361,139 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
 
         <WizardStep status={reachabilityStatus} title={shareable ? "Reachable from anywhere" : "Make it reachable"}>
           {shareable ? (
-            <p className="truncate font-mono text-[11px] text-white/55">{publicStatus?.publicUrl ?? publicOrigin}</p>
-          ) : (
-            <div className="space-y-2.5">
-              <p className="text-[11px] leading-relaxed text-white/45">
-                Right now this link only works on your Mac. <code className="font-mono text-white/55">localhost</code>{" "}
-                is not reachable from other devices or the internet — configure your public hostname, save{" "}
-                <code className="font-mono text-white/55">.env.local</code>, set up the Cloudflare tunnel, then restart
-                dev.
+            <div className="space-y-1">
+              <p className="truncate font-mono text-[11px] text-white/55">{publicStatus?.publicUrl ?? publicOrigin}</p>
+              <p className="text-[10px] text-white/40">
+                One public URL serves all your events — each event gets its own join code.
               </p>
-
-              <div className="space-y-1.5">
-                <label htmlFor="public-hostname" className="text-[10px] font-medium text-white/50">
-                  Public hostname
-                </label>
-                <Input
-                  id="public-hostname"
-                  value={hostnameInput}
-                  onChange={(event) => {
-                    setHostnameInput(event.target.value);
-                    setEnvPreview(null);
-                    setSaveState("idle");
-                    setSaveMessage(null);
-                  }}
-                  placeholder="lobby.example.com or example.com"
-                  className="h-8 border-[#262626] bg-[#0d0d0d] font-mono text-[11px] text-white/75 placeholder:text-white/25"
-                />
-                {normalizedHostname && normalizedHostname !== hostnameInput.trim().toLowerCase() ? (
-                  <p className="text-[10px] text-white/35">Will use {normalizedHostname}</p>
-                ) : null}
-              </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!hostnameInput.trim()}
-                  onClick={generateEnvConfig}
-                  className="h-7 border-[#262626] bg-transparent px-2.5 text-[11px] text-white/60 hover:bg-white/5 hover:text-white/80"
-                >
-                  Generate env config
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={!hostnameInput.trim() || saveState === "saving"}
-                  onClick={() => void saveEnvLocal()}
-                  className="h-7 bg-primary px-2.5 text-[11px] text-primary-foreground hover:bg-primary/90"
-                >
-                  {saveState === "saving" ? (
-                    <>
-                      <Loader2 className="size-3 animate-spin" strokeWidth={1.5} />
-                      Saving…
-                    </>
-                  ) : (
-                    "Save to .env.local"
-                  )}
-                </Button>
-              </div>
-
-              {envPreview ? <CopyBlock text={envPreview} multiline /> : null}
-
-              {saveMessage ? (
-                <p
-                  className={cn(
-                    "text-[10px] leading-relaxed",
-                    saveState === "error" ? "text-red-400/80" : "text-emerald-400/80",
-                  )}
-                >
-                  {saveMessage}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                <div className="mb-1.5 flex items-center gap-1.5">
+                  <Cloud className="size-3.5 text-emerald-400/80" strokeWidth={1.5} />
+                  <p className="text-[11px] font-medium text-white/75">Option A — Deploy to Cloudflare (recommended)</p>
+                </div>
+                <p className="text-[10px] leading-relaxed text-white/45">
+                  Free stable URL on <code className="font-mono text-white/55">*.workers.dev</code> or{" "}
+                  <code className="font-mono text-white/55">*.pages.dev</code>. No custom domain required. One URL
+                  serves every event — guests join with your event code.
                 </p>
-              ) : null}
+                <div className="mt-2 space-y-1.5">
+                  <CopyBlock text={WRANGLER_LOGIN} />
+                  <CopyBlock text={DEPLOY_COMMAND} />
+                </div>
+                <p className="mt-2 text-[10px] leading-relaxed text-white/35">
+                  After deploy, set{" "}
+                  <code className="font-mono text-white/50">LOBBY_PUBLIC_URL</code> and{" "}
+                  <code className="font-mono text-white/50">NEXT_PUBLIC_LOBBY_PUBLIC_URL</code> in the Cloudflare
+                  dashboard (Workers → Settings → Variables) to your deploy URL, or rely on auto-detection from the
+                  request host.
+                </p>
+              </div>
 
-              {pendingRestart ? (
-                <div className="rounded-md border border-amber-500/25 bg-amber-500/5 px-2.5 py-2">
-                  <p className="text-[10px] leading-relaxed text-amber-200/80">
-                    Restart dev server to apply — Next.js only reads <code className="font-mono">.env.local</code> at
-                    startup.
+              <button
+                type="button"
+                onClick={() => setShowTunnel((open) => !open)}
+                className="flex w-full items-center gap-1.5 text-[10px] text-white/40 hover:text-white/60"
+              >
+                <ChevronDown
+                  className={cn("size-3 transition-transform", showTunnel ? "rotate-180" : "")}
+                  strokeWidth={1.5}
+                />
+                Option B — Local dev + Cloudflare Tunnel (advanced)
+              </button>
+
+              {showTunnel ? (
+                <div className="space-y-2.5 rounded-lg border border-[#262626] bg-[#0d0d0d]/50 p-2.5">
+                  <p className="text-[10px] leading-relaxed text-white/40">
+                    For localhost-only dev with a custom hostname. Requires a domain in Cloudflare DNS.
                   </p>
-                  <div className="mt-1.5">
-                    <CopyBlock text={DEV_RESTART_COMMAND} />
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="public-hostname" className="text-[10px] font-medium text-white/50">
+                      Public hostname
+                    </label>
+                    <Input
+                      id="public-hostname"
+                      value={hostnameInput}
+                      onChange={(event) => {
+                        setHostnameInput(event.target.value);
+                        setEnvPreview(null);
+                        setSaveState("idle");
+                        setSaveMessage(null);
+                      }}
+                      placeholder="lobby.example.com or example.com"
+                      className="h-8 border-[#262626] bg-[#0d0d0d] font-mono text-[11px] text-white/75 placeholder:text-white/25"
+                    />
+                    {normalizedHostname && normalizedHostname !== hostnameInput.trim().toLowerCase() ? (
+                      <p className="text-[10px] text-white/35">Will use {normalizedHostname}</p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!hostnameInput.trim()}
+                      onClick={generateEnvConfig}
+                      className="h-7 border-[#262626] bg-transparent px-2.5 text-[11px] text-white/60 hover:bg-white/5 hover:text-white/80"
+                    >
+                      Generate env config
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!hostnameInput.trim() || saveState === "saving"}
+                      onClick={() => void saveEnvLocal()}
+                      className="h-7 bg-primary px-2.5 text-[11px] text-primary-foreground hover:bg-primary/90"
+                    >
+                      {saveState === "saving" ? (
+                        <>
+                          <Loader2 className="size-3 animate-spin" strokeWidth={1.5} />
+                          Saving…
+                        </>
+                      ) : (
+                        "Save to .env.local"
+                      )}
+                    </Button>
+                  </div>
+
+                  {envPreview ? <CopyBlock text={envPreview} multiline /> : null}
+
+                  {saveMessage ? (
+                    <p
+                      className={cn(
+                        "text-[10px] leading-relaxed",
+                        saveState === "error" ? "text-red-400/80" : "text-emerald-400/80",
+                      )}
+                    >
+                      {saveMessage}
+                    </p>
+                  ) : null}
+
+                  {pendingRestart ? (
+                    <div className="rounded-md border border-amber-500/25 bg-amber-500/5 px-2.5 py-2">
+                      <p className="text-[10px] leading-relaxed text-amber-200/80">
+                        Restart dev server to apply — Next.js only reads <code className="font-mono">.env.local</code> at
+                        startup.
+                      </p>
+                      <div className="mt-1.5">
+                        <CopyBlock text={DEV_RESTART_COMMAND} />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-1.5 pt-0.5">
+                    <p className="text-[10px] font-medium text-white/45">
+                      {savedHostname ? "3" : "2"}. Run tunnel setup (same hostname)
+                    </p>
+                    <CopyBlock text={tunnelSetupCommand} />
+                    <CopyBlock text={TUNNEL_INSTALL_COMMAND} />
                   </div>
                 </div>
               ) : null}
-
-              <div className="space-y-1.5 pt-0.5">
-                <p className="text-[10px] font-medium text-white/45">
-                  {savedHostname ? "3" : "2"}. Run tunnel setup (same hostname)
-                </p>
-                <CopyBlock text={tunnelSetupCommand} />
-                <CopyBlock text={TUNNEL_INSTALL_COMMAND} />
-              </div>
 
               <div className="flex items-center gap-2 pt-0.5">
                 {polling ? (
@@ -464,7 +508,7 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
                     onClick={() => void refreshStatus()}
                     className="h-7 border-[#262626] bg-transparent px-2.5 text-[11px] text-white/60 hover:bg-white/5 hover:text-white/80"
                   >
-                    I&apos;ve done this — check again
+                    I&apos;ve deployed — check again
                   </Button>
                 )}
               </div>
@@ -496,7 +540,7 @@ export function EventShareWizard({ event, joinUrl, onDone }: EventShareWizardPro
               <p className="text-[10px] text-white/35">
                 {pendingRestart
                   ? "Restart npm run dev, then complete tunnel setup to unlock the guest link."
-                  : "Complete step 2 to unlock the guest link."}
+                  : "Deploy to Cloudflare or complete tunnel setup to unlock the guest link."}
               </p>
             ) : (
               <>

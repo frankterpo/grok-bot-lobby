@@ -1,6 +1,6 @@
 import { originFromRequest } from "@/lib/format";
 import { asString, handleError, isRecord, jsonError, jsonOk, readJson } from "@/lib/http";
-import { getLobby } from "@/lib/lobby-store";
+import { lobbyDispatch } from "@/lib/lobby-client";
 import { actorFromRequest } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -17,9 +17,9 @@ export async function POST(request: Request): Promise<Response> {
       return jsonError("Need eventId.", 400);
     }
     const actor = await actorFromRequest(request, eventId);
-    getLobby().markShareCopied(actor, eventId);
+    await lobbyDispatch("markShareCopied", { actor, eventId });
     return jsonOk(
-      getLobby().snapshot({
+      await lobbyDispatch("snapshot", {
         eventId,
         actor,
         origin: originFromRequest(request),

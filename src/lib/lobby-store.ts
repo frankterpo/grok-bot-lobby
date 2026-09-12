@@ -39,6 +39,10 @@ import {
 } from "@/lib/domain";
 import { joinUrl } from "@/lib/format";
 import { deriveChecklist } from "@/lib/onboarding";
+import {
+  emptyPersistedState,
+  type PersistedLobbyState,
+} from "@/lib/lobby-persisted";
 import { buildSeed, type StoredEvent, type UserPrefs } from "@/lib/seed";
 
 type SnapshotListener = {
@@ -76,6 +80,8 @@ function hydrateSquads(event: StoredEvent): void {
   }));
 }
 
+type EmitFn = (eventId: string) => void;
+
 export class LobbyMemory {
   private events = new Map<string, StoredEvent>();
   private tokens = new Map<string, LobbyToken>();
@@ -86,34 +92,80 @@ export class LobbyMemory {
   private shareCopied = new Set<string>();
   private exchanges = new Map<string, TokenExchangeRequest>();
   private listeners = new Map<string, Set<SnapshotListener>>();
+  private externalEmit: EmitFn | null = null;
 
-  constructor() {
-    this.loadSeed();
+  constructor(options?: { seed?: boolean }) {
+    if (options?.seed !== false) {
+      this.loadSeed();
+    }
+  }
+
+  setEmitter(fn: EmitFn): void {
+    this.externalEmit = fn;
+  }
+
+  static fromPersisted(state: PersistedLobbyState): LobbyMemory {
+    const lobby = new LobbyMemory({ seed: false });
+    for (const event of state.events) {
+      lobby.events.set(event.id, event);
+    }
+    for (const [key, token] of state.tokens) {
+      lobby.tokens.set(key, token);
+    }
+    for (const [userId, profile] of state.profiles) {
+      lobby.profiles.set(userId, profile);
+    }
+    for (const [key, record] of state.presence) {
+      lobby.presence.set(key, record);
+    }
+    for (const [userId, prefs] of state.prefs) {
+      lobby.prefs.set(userId, prefs);
+    }
+    for (const [eventId, userIds] of state.claimed) {
+      lobby.claimed.set(eventId, new Set(userIds));
+    }
+    for (const eventId of state.shareCopied) {
+      lobby.shareCopied.add(eventId);
+    }
+    for (const [id, exchange] of state.exchanges) {
+      lobby.exchanges.set(id, exchange);
+    }
+    return lobby;
+  }
+
+  toPersisted(): PersistedLobbyState {
+    return {
+      version: 1,
+      events: [...this.events.values()],
+      tokens: [...this.tokens.entries()],
+      profiles: [...this.profiles.entries()],
+      presence: [...this.presence.entries()],
+      prefs: [...this.prefs.entries()],
+      claimed: [...this.claimed.entries()].map(([eventId, ids]) => [eventId, [...ids]] as [string, string[]]),
+      shareCopied: [...this.shareCopied],
+      exchanges: [...this.exchanges.entries()],
+    };
   }
 
   private loadSeed(): void {
     const seed = buildSeed();
-    for (const event of seed.events) {
-      this.events.set(event.id, event);
-    }
-    for (const token of seed.tokens) {
-      this.tokens.set(tokenKey(token.eventId, token.botId), token);
-    }
-    for (const profile of seed.profiles) {
-      this.profiles.set(profile.userId, profile);
-    }
-    for (const record of seed.presence) {
-      this.presence.set(tokenKey(record.eventId, record.userId), record);
-    }
-    for (const [userId, prefs] of seed.prefs) {
-      this.prefs.set(userId, prefs);
-    }
-    for (const [eventId, userIds] of seed.claimed) {
-      this.claimed.set(eventId, new Set(userIds));
-    }
-    for (const eventId of seed.shareCopied) {
-      this.shareCopied.add(eventId);
-    }
+    const empty = emptyPersistedState();
+    empty.events = seed.events;
+    empty.tokens = seed.tokens.map((token) => [tokenKey(token.eventId, token.botId), token]);
+    empty.profiles = seed.profiles.map((profile) => [profile.userId, profile]);
+    empty.presence = seed.presence.map((record) => [tokenKey(record.eventId, record.userId), record]);
+    empty.prefs = seed.prefs;
+    empty.claimed = seed.claimed;
+    empty.shareCopied = seed.shareCopied;
+    const restored = LobbyMemory.fromPersisted(empty);
+    this.events = restored.events;
+    this.tokens = restored.tokens;
+    this.profiles = restored.profiles;
+    this.presence = restored.presence;
+    this.prefs = restored.prefs;
+    this.claimed = restored.claimed;
+    this.shareCopied = restored.shareCopied;
+    this.exchanges = restored.exchanges;
   }
 
   actor(slot: IdentitySlot, userId: string | null, event: StoredEvent | null): Actor {
@@ -128,8 +180,35 @@ export class LobbyMemory {
     };
   }
 
+  /** @deprecated Prefer listEventsForActor — never expose all events publicly. */
   listEvents(): Event[] {
     return [...this.events.values()].map((event) => this.presentEvent(event, null));
+  }
+
+  listEventsForActor(actor: Actor): Event[] {
+    if (!actor.userId) {
+      return [];
+    }
+    return [...this.events.values()]
+      .filter((event) => {
+        if (event.hostUserId === actor.userId) {
+          return true;
+        }
+        return event.attendees.some((person) => person.id === actor.userId);
+      })
+      .map((event) => this.presentEvent(event, actor.userId));
+  }
+
+  visibleEventsForActor(actor: Actor, activeEventId: string | null): Event[] {
+    const scoped = this.listEventsForActor(actor);
+    if (scoped.length > 0 || !activeEventId) {
+      return scoped;
+    }
+    const active = this.getStored(activeEventId);
+    if (!active) {
+      return scoped;
+    }
+    return [this.presentEvent(active, actor.userId)];
   }
 
   getStored(eventId: string): StoredEvent | null {
@@ -177,7 +256,7 @@ export class LobbyMemory {
 
     return {
       event,
-      events: this.listEvents(),
+      events: this.visibleEventsForActor(args.actor, stored?.id ?? null),
       tokens,
       presence,
       profiles,
@@ -704,12 +783,12 @@ export class LobbyMemory {
 
   private emit(eventId: string): void {
     const listeners = this.listeners.get(eventId);
-    if (!listeners) {
-      return;
+    if (listeners) {
+      for (const listener of listeners) {
+        listener.fn(this.snapshot({ eventId, actor: listener.actor, origin: listener.origin }));
+      }
     }
-    for (const listener of listeners) {
-      listener.fn(this.snapshot({ eventId, actor: listener.actor, origin: listener.origin }));
-    }
+    this.externalEmit?.(eventId);
   }
 }
 

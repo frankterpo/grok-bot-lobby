@@ -1,6 +1,6 @@
 import { originFromRequest } from "@/lib/format";
 import { handleError, jsonOk } from "@/lib/http";
-import { getLobby, LobbyError } from "@/lib/lobby-store";
+import { lobbyDispatch } from "@/lib/lobby-client";
 import { actorFromRequest, writeIdentityCookie } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -15,7 +15,7 @@ export async function GET(request: Request): Promise<Response> {
     if (actor.slot === "you" && actor.userId) {
       await writeIdentityCookie("you", actor.userId);
     }
-    const snapshot = getLobby().snapshot({
+    const snapshot = await lobbyDispatch("snapshot", {
       eventId,
       code,
       actor,
@@ -23,9 +23,6 @@ export async function GET(request: Request): Promise<Response> {
     });
     return jsonOk(snapshot);
   } catch (error) {
-    if (error instanceof LobbyError) {
-      return handleError(error);
-    }
     return handleError(error);
   }
 }

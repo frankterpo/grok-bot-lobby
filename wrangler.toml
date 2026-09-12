@@ -1,0 +1,27 @@
+name = "grok-bot-lobby"
+main = "custom-worker.ts"
+compatibility_date = "2025-09-12"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "grok-bot-lobby"
+
+[durable_objects]
+bindings = [{ name = "LOBBY_STORE", class_name = "LobbyStoreDO" }]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LobbyStoreDO"]
+
+[observability]
+enabled = true
+
+[vars]
+# Set in Cloudflare dashboard after deploy, or via wrangler secret:
+# LOBBY_PUBLIC_URL = "https://grok-bot-lobby.pages.dev"
+# NEXT_PUBLIC_LOBBY_PUBLIC_URL = "https://grok-bot-lobby.pages.dev"

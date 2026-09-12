@@ -357,8 +357,9 @@ export function createId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
 }
 
+/** 8-char crypto-random code (~32^8 combinations). Avoids ambiguous 0/O and 1/I. */
 export function createEventCode(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }

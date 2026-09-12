@@ -13,9 +13,18 @@ Open [http://127.0.0.1:4521](http://127.0.0.1:4521) (`?as=you`). Port **4521**. 
 
 No Clerk / Supabase / Luma credentials required.
 
-### Remote joins (Cloudflare Tunnel)
+### Remote joins (Cloudflare deploy — recommended)
 
-Localhost join links are not shareable off the host machine. After `npm run tunnel:setup`, copy `.env.local.example` to `.env.local` and set **`LOBBY_PUBLIC_URL`** and **`NEXT_PUBLIC_LOBBY_PUBLIC_URL`** to your tunnel hostname (see [`docs/persistent-tunnel.md`](docs/persistent-tunnel.md)). Restart `npm run dev`.
+Deploy once for a free stable URL (`*.workers.dev`). One URL serves all events; each event gets its own join code.
+
+```bash
+npx wrangler login   # one-time
+npm run deploy
+```
+
+See [`docs/remote-join.md`](docs/remote-join.md) and [`docs/security.md`](docs/security.md).
+
+**Alternative:** local dev + named Cloudflare Tunnel (custom domain). Copy `.env.local.example` → `.env.local`, set **`LOBBY_PUBLIC_URL`**, see [`docs/persistent-tunnel.md`](docs/persistent-tunnel.md).
 
 ### Optional demo seed (local dev)
 
