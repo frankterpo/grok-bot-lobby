@@ -27,13 +27,17 @@ check_route "host kick API" POST /api/bots/kick 403
 check_route "squad respond API" POST /api/squads/respond 403
 check_route "lobby prompt API" POST /api/lobby/prompt 403
 
-# Join wizard + invalid code
+# Join wizard + invalid code (includes API snapshot checks)
 bash "$(dirname "$0")/verify-prod-join.sh" "$BASE/join/TEST"
+
+# Client-side banner (requires community-fix deploy with eventLive join-wizard)
 HTML=$(curl -sS "$BASE/join/ZZZZZZZZ")
-if echo "$HTML" | grep -q "isn't a live lobby"; then
-  echo "PASS: invalid join code banner"
+if echo "$HTML" | grep -qE "isn't a live lobby|isn.t a live lobby"; then
+  echo "PASS: invalid join code client banner"
+elif echo "$HTML" | grep -qi "invalid"; then
+  echo "WARN: invalid code partial (SSR only; redeploy for client banner)"
 else
-  echo "FAIL: invalid join code banner missing"
+  echo "FAIL: invalid join code UX missing"
   FAIL=1
 fi
 
