@@ -26,6 +26,7 @@ export function sessionView(
     userId: actor.userId,
     role: actor.role,
     slot: actor.slot,
+    hostAuthenticated: actor.hostAuthenticated === true,
     claimed: isClaimed,
     permissionsAccepted: userPrefs?.permissionsAccepted ?? false,
     shareLevel: userPrefs?.shareLevel ?? "label+status",
