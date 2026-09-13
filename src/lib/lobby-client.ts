@@ -2,9 +2,17 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import type { LobbyStoreDO } from "@/durable-objects/lobby-store-do";
 import type { Actor } from "@/lib/domain";
-import { getLobby, type LobbyMemory } from "@/lib/lobby-store";
+import { getLobby, type LobbyMemory, LobbyError } from "@/lib/lobby-store";
+import { isLobbyErrorPayload } from "@/lib/lobby-store-helpers";
 
 const STORE_NAME = "primary";
+
+function unwrapLobbyResult<T>(result: unknown): T {
+  if (isLobbyErrorPayload(result)) {
+    throw new LobbyError(result.__lobbyError.message, result.__lobbyError.status);
+  }
+  return result as T;
+}
 
 export type LobbyStoreBinding = DurableObjectNamespace<LobbyStoreDO>;
 
@@ -144,7 +152,7 @@ export async function lobbyDispatch<T>(op: string, payload: Record<string, unkno
   if (!op.startsWith("check")) {
     await room.commit();
   }
-  return result as T;
+  return unwrapLobbyResult<T>(result);
 }
 
 export async function lobbyStream(args: {

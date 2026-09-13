@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CopyBlock } from "@/components/lobby/copy-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { lobbyFetch } from "@/lib/client";
 import {
   buildJoinLobbyNpmBlock,
   buildSidecarGatekeeperUnblockCommand,
@@ -35,6 +36,7 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
   const [joinedUserId, setJoinedUserId] = useState<string | null>(null);
   const [showRemote, setShowRemote] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [eventLive, setEventLive] = useState<boolean | null>(null);
 
   const trimmedName = name.trim();
   const trimmedTask = task.trim() || "Joining the lobby";
@@ -61,6 +63,29 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
     URL.revokeObjectURL(url);
     setShowDownloadHelp(true);
   }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkEvent(): Promise<void> {
+      try {
+        const response = await lobbyFetch(`/api/lobby/snapshot?code=${encodeURIComponent(code)}`);
+        const body = (await response.json()) as { event?: { id: string } | null };
+        if (!cancelled) {
+          setEventLive(Boolean(body.event?.id));
+        }
+      } catch {
+        if (!cancelled) {
+          setEventLive(null);
+        }
+      }
+    }
+
+    void checkEvent();
+    return () => {
+      cancelled = true;
+    };
+  }, [code]);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,6 +164,13 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
             : "Chrome cannot run shell commands (browser security). Start the one-time local helper below, then this page joins for you."}
         </p>
       </div>
+
+      {eventLive === false ? (
+        <div className="rounded-md border border-amber-900/40 bg-amber-950/20 p-3 text-[12px] leading-relaxed text-amber-400/90">
+          <strong className="text-amber-300/95">{code.toUpperCase()}</strong> isn&apos;t a live lobby yet. Ask the
+          host to create an event and share the real join link — starting the helper here will fail until then.
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">

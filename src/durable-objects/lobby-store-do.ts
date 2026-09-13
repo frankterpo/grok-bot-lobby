@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 
 import type { Actor, ExchangeStatus, LobbySnapshot, ShareLevel, TokenStatus } from "@/lib/domain";
 import { LobbyMemory, LobbyError } from "@/lib/lobby-store";
+import { lobbyErrorPayload } from "@/lib/lobby-store-helpers";
 import type { PersistedLobbyState } from "@/lib/lobby-persisted";
 import { emptyPersistedState } from "@/lib/lobby-persisted";
 
@@ -70,7 +71,8 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
     const lobby = await this.ensureLoaded();
     this.attachEmitter(lobby);
 
-    switch (op) {
+    try {
+      switch (op) {
       case "snapshot":
         return lobby.snapshot(payload as Parameters<LobbyMemory["snapshot"]>[0]);
       case "createEvent":
@@ -170,6 +172,12 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
       }
       default:
         throw new LobbyError(`Unknown lobby operation: ${op}`, 400);
+      }
+    } catch (error) {
+      if (error instanceof LobbyError) {
+        return lobbyErrorPayload(error);
+      }
+      throw error;
     }
   }
 

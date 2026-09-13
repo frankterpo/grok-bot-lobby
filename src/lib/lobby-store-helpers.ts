@@ -34,6 +34,26 @@ export class LobbyError extends Error {
 
   constructor(message: string, status: number) {
     super(message);
+    this.name = "LobbyError";
     this.status = status;
   }
+}
+
+export type LobbyErrorPayload = {
+  __lobbyError: {
+    message: string;
+    status: number;
+  };
+};
+
+export function isLobbyErrorPayload(value: unknown): value is LobbyErrorPayload {
+  if (typeof value !== "object" || value === null || !("__lobbyError" in value)) {
+    return false;
+  }
+  const payload = (value as LobbyErrorPayload).__lobbyError;
+  return typeof payload.message === "string" && typeof payload.status === "number";
+}
+
+export function lobbyErrorPayload(error: LobbyError): LobbyErrorPayload {
+  return { __lobbyError: { message: error.message, status: error.status } };
 }
