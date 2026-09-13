@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   buildJoinLobbyNpmBlock,
+  buildSidecarMacCommandFile,
   buildSidecarStartBlock,
   buildZeroFrictionSetupBlock,
 } from "@/lib/join-blocks";
@@ -43,6 +44,16 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
 
   const sidecarStartBlock = buildSidecarStartBlock();
   const npmBlock = buildJoinLobbyNpmBlock({ code, origin, name: trimmedName || "Guest" });
+
+  function downloadMacHelper(): void {
+    const blob = new Blob([buildSidecarMacCommandFile()], { type: "application/x-sh" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "start-grok-lobby-helper.command";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -161,10 +172,19 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
         </div>
       ) : (
         <div className="space-y-2 rounded-md border border-[#333] bg-[#0a0a0a] p-3">
-          <p className="text-[12px] font-medium text-white/80">Step 1 — paste once in Terminal</p>
+          <p className="text-[12px] font-medium text-white/80">Step 1 — start helper on this Mac</p>
           <p className="text-[11px] leading-relaxed text-white/45">
-            Clones the lobby repo if needed, starts the helper, then this page auto-detects it — no refresh.
+            Double-click the download (Mac) or paste in Terminal. Clones repo if needed — page auto-detects helper.
           </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 w-full border-[#333] bg-[#111] text-[12px] text-white/85"
+            onClick={downloadMacHelper}
+          >
+            Download Mac helper (.command)
+          </Button>
+          <p className="text-[10px] text-white/30">First open: right-click → Open (Gatekeeper). Leave Terminal open.</p>
           <CopyBlock text={sidecarStartBlock} multiline />
           <SidecarWaitStatus checked={sidecarChecked} probe={sidecarProbe} />
         </div>

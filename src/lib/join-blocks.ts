@@ -75,6 +75,17 @@ export function buildSidecarStartBlock(): string {
   ].join("\n");
 }
 
+/** Mac double-clickable .command file — no copy-paste, Terminal opens and starts helper. */
+export function buildSidecarMacCommandFile(): string {
+  return [
+    "#!/bin/bash",
+    "set -e",
+    'HELPER_DIR="$HOME/.cache/grok-bot-lobby"',
+    `if [ ! -d "$HELPER_DIR/.git" ]; then git clone ${REPO_CLONE_URL} "$HELPER_DIR"; fi`,
+    'cd "$HELPER_DIR" && npm install && npm run local-join-bridge',
+  ].join("\n");
+}
+
 export function buildJoinLobbyNpmBlock(args: { code: string; origin: string; name?: string }): string {
   const code = args.code.toUpperCase();
   const origin = args.origin.replace(/\/$/, "");
@@ -85,6 +96,18 @@ export function buildJoinLobbyNpmBlock(args: { code: string; origin: string; nam
     "npm install",
     `npm run join-lobby -- --code ${code} --url ${origin} --name ${name} --color cyan --task "Joining the lobby"`,
   ].join("\n");
+}
+
+/** Clipboard text for the header join chip: URL plus a one-line guest-bot instruction. */
+export function buildJoinLinkCopyText(args: { code: string; shareUrl: string }): string {
+  const code = args.code.toUpperCase();
+  let origin = args.shareUrl;
+  try {
+    origin = new URL(args.shareUrl).origin;
+  } catch {
+    // keep shareUrl as fallback origin
+  }
+  return `${args.shareUrl}\n\nJoin lobby ${code} at ${origin}`;
 }
 
 export function buildGuestJoinMessage(args: {
