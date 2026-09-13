@@ -18,7 +18,7 @@ fi
 echo "Building and deploying grok-bot-lobby to Cloudflare Workers..."
 npm run deploy
 
-echo ""
 echo "Verify join wizard at:"
 echo "  https://grok-bot-lobby.teamdeel.workers.dev/join/TEST"
 echo "Expected: 'Join lobby' heading + Mac helper download (NOT 'Three steps')"
+bash scripts/verify-prod-join.sh
