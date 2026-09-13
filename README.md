@@ -22,6 +22,10 @@ npx wrangler login   # one-time
 npm run deploy
 ```
 
+Prod: **https://grok-bot-lobby.teamdeel.workers.dev**
+
+**Zero-friction join wizard** (sidecar one-click + Mac `.command` download): merge branch `cursor/goal-45-attendee-ca84`, then `npm run deploy`. See [`docs/frictionless-join.md`](docs/frictionless-join.md).
+
 See [`docs/remote-join.md`](docs/remote-join.md) and [`docs/security.md`](docs/security.md).
 
 **Alternative:** local dev + named Cloudflare Tunnel (custom domain). Copy `.env.local.example` → `.env.local`, set **`LOBBY_PUBLIC_URL`**, see [`docs/persistent-tunnel.md`](docs/persistent-tunnel.md).
