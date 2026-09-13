@@ -18,8 +18,19 @@ type CacheEntry = {
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const cache = new Map<string, CacheEntry>();
 
-function cacheKey(userId: string): string {
-  return userId;
+function cacheKey(userId: string, inputs?: ProfileInputs): string {
+  if (!inputs) {
+    return userId;
+  }
+  return [
+    userId,
+    inputs.lumaHandle ?? "",
+    inputs.lumaProfileUrl ?? "",
+    inputs.githubHandle ?? "",
+    inputs.githubProfileUrl ?? "",
+    inputs.originHandle ?? "",
+    inputs.originProfileUrl ?? "",
+  ].join("|");
 }
 
 function parseGithubHandle(urlOrHandle: string): string | null {
@@ -99,7 +110,7 @@ export async function resolvePublicProfile(
   userId: string,
   inputs: ProfileInputs,
 ): Promise<LumaProfile> {
-  const key = cacheKey(userId);
+  const key = cacheKey(userId, inputs);
   const cached = cache.get(key);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
     return cached.profile;
@@ -136,5 +147,9 @@ export async function resolvePublicProfile(
 }
 
 export function invalidateProfileCache(userId: string): void {
-  cache.delete(cacheKey(userId));
+  for (const key of cache.keys()) {
+    if (key === userId || key.startsWith(`${userId}|`)) {
+      cache.delete(key);
+    }
+  }
 }

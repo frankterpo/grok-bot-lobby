@@ -1,7 +1,8 @@
 import { originFromRequest } from "@/lib/format";
 import { handleError, jsonOk } from "@/lib/http";
+import { actorForBridge } from "@/lib/bot-auth";
 import { lobbyDispatch } from "@/lib/lobby-client";
-import { actorFromRequest, writeIdentityCookie } from "@/lib/session";
+import { writeIdentityCookie } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export async function GET(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const eventId = url.searchParams.get("eventId") ?? undefined;
     const code = url.searchParams.get("code") ?? undefined;
-    const actor = await actorFromRequest(request, eventId, code);
+    const actor = await actorForBridge(request, eventId, code);
     if (actor.hostAuthenticated && actor.slot === "you" && actor.userId) {
       await writeIdentityCookie("you", actor.userId);
     }

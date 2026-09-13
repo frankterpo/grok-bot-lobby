@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import type { Actor, Attendee, PresenceRecord, PresenceView } from "@/lib/domain";
 import { HOST_USER_ID, presenceState, STALE_AFTER_MS } from "@/lib/domain";
 import { filterSoloAttendees, sortSoloAttendees } from "@/lib/grid-sort";
+import { incomingInvitesFor } from "@/lib/squad-invite-view";
 import { LobbyMemory } from "@/lib/lobby-store";
 import { canKickAttendee, canRespondSquadInvite } from "@/lib/policy";
 import {
@@ -61,7 +62,9 @@ describe("parseGrokPrompt", () => {
   });
 
   it("maps done / waiting / idle phrases", () => {
-    assert.equal(parseGrokPrompt("done with credits").status, "done");
+    const done = parseGrokPrompt("done with credits");
+    assert.equal(done.status, "done");
+    assert.match(done.taskLabel.toLowerCase(), /credits/);
     assert.equal(parseGrokPrompt("waiting for venue").status, "waiting");
     assert.equal(parseGrokPrompt("idle").status, "idle");
   });
@@ -165,7 +168,10 @@ describe("lobby community store", () => {
     assert.equal(invited.event?.attendees.find((person) => person.id === bob.userId)?.squadId, undefined);
     const pending = invited.squadInvites.filter((item) => item.status === "pending");
     assert.equal(pending.length, 1);
-    assert.equal(canRespondSquadInvite(attendeeActor(bob.userId), pending[0]!, created.event), true);
+    assert.equal(canRespondSquadInvite(attendeeActor(bob.userId), pending[0]!, invited.event!), true);
+    assert.equal(incomingInvitesFor(pending, attendeeActor(bob.userId), invited.event!).length, 1);
+    assert.equal(incomingInvitesFor(pending, attendeeActor(alice.userId), invited.event!).length, 0);
+    assert.equal(incomingInvitesFor(pending, host, invited.event!).length, 0);
     const accepted = lobby.respondInvite(attendeeActor(bob.userId), created.event.id, pending[0]!.id, "accepted");
     assert.ok(accepted.event?.attendees.find((person) => person.id === bob.userId)?.squadId);
   });

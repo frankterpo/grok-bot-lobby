@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import type { Actor, Event, SquadInvite } from "@/lib/domain";
-import { canRespondSquadInvite } from "@/lib/policy";
+import { incomingInvitesFor, outgoingInvitesFor } from "@/lib/squad-invite-view";
 
 type SquadInviteBannerProps = {
   invites: SquadInvite[];
@@ -17,23 +17,6 @@ function nameOf(event: Event, id: string): string {
 
 function squadName(event: Event, squadId: string): string {
   return event.squads.find((squad) => squad.id === squadId)?.name ?? "a group";
-}
-
-export function incomingInvitesFor(invites: SquadInvite[], actor: Actor, event: Event): SquadInvite[] {
-  return invites.filter(
-    (invite) => invite.status === "pending" && canRespondSquadInvite(actor, invite, event),
-  );
-}
-
-export function outgoingInvitesFor(invites: SquadInvite[], actor: Actor): SquadInvite[] {
-  return invites.filter(
-    (invite) =>
-      invite.status === "pending" &&
-      invite.direction === "invite" &&
-      actor.userId !== null &&
-      invite.fromBotId === actor.userId &&
-      invite.toBotId !== actor.userId,
-  );
 }
 
 export function SquadInviteBanner({ invites, event, actor, onRespond }: SquadInviteBannerProps) {

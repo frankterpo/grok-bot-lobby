@@ -3,7 +3,7 @@ import { handleError, jsonError, jsonOk, readJson } from "@/lib/http";
 import { actorForBridge } from "@/lib/bot-auth";
 import { lobbyDispatch } from "@/lib/lobby-client";
 import { parseEnrichBody } from "@/lib/parsers";
-import { resolvePublicProfile } from "@/lib/profile-fetch";
+import { invalidateProfileCache, resolvePublicProfile } from "@/lib/profile-fetch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +15,7 @@ export async function POST(request: Request): Promise<Response> {
       return jsonError("Need at least one profile URL or handle.", 400);
     }
     const userId = body.botId ?? body.userId ?? "preview";
+    invalidateProfileCache(userId);
     const profile = await resolvePublicProfile(userId, body);
     if (body.eventId && body.botId) {
       const actor = await actorForBridge(request, body.eventId);

@@ -18,7 +18,8 @@ function stripStatusWords(text: string): string {
   return text
     .replace(/^(i['’]m|i am|we['’]re|we are)\s+/i, "")
     .replace(/\b(status|task)\s*[:=]\s*/gi, "")
-    .replace(/\b(done|finished|shipped|completed?|waiting|blocked|paused|hold|idle|afk|resting|away|working on|working|building|fixing|coding)\b/gi, " ")
+    .replace(/\b(done with|working on|finished with)\b/gi, " ")
+    .replace(/\b(done|finished|shipped|completed?|waiting|blocked|paused|hold|idle|afk|resting|away|working|building|fixing|coding)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
