@@ -17,6 +17,8 @@ import {
   type LumaProfile,
   type PresenceRecord,
   type ShareLevel,
+  type SquadInvite,
+  type SquadInviteStatus,
   type TokenStatus,
   BOT_COLORS,
   createEventCode,
@@ -42,8 +44,12 @@ import {
   proposeExchange,
   requestJoinSquad,
   resolveExchange,
+  respondSquadInvite,
+  squadInvitesFor,
   type ExchangeStore,
 } from "@/lib/lobby-store-exchange";
+import { deleteEvent, kickAttendee, removeFromSquad, type AdminStore } from "@/lib/lobby-store-admin";
+import { parseGrokPrompt } from "@/lib/prompt-to-token";
 import { deriveChecklist } from "@/lib/onboarding";
 import { buildToken, tokensEqual, truncateTaskLabel } from "@/lib/token-utils";
 import { emptyPersistedState, type PersistedLobbyState } from "@/lib/lobby-persisted";
@@ -92,6 +98,7 @@ export class LobbyMemory {
   private claimed = new Map<string, Set<string>>();
   private shareCopied = new Set<string>();
   private exchanges = new Map<string, import("@/lib/domain").TokenExchangeRequest>();
+  private squadInvites = new Map<string, SquadInvite>();
   private listeners = new Map<string, Set<SnapshotListener>>();
   private externalEmit: EmitFn | null = null;
 
@@ -131,6 +138,9 @@ export class LobbyMemory {
     for (const [id, exchange] of state.exchanges) {
       lobby.exchanges.set(id, exchange);
     }
+    for (const [id, invite] of state.squadInvites ?? []) {
+      lobby.squadInvites.set(id, invite);
+    }
     return lobby;
   }
 
@@ -145,6 +155,7 @@ export class LobbyMemory {
       claimed: [...this.claimed.entries()].map(([eventId, ids]) => [eventId, [...ids]] as [string, string[]]),
       shareCopied: [...this.shareCopied],
       exchanges: [...this.exchanges.entries()],
+      squadInvites: [...this.squadInvites.entries()],
     };
   }
 
@@ -252,7 +263,10 @@ export class LobbyMemory {
           .filter((profile): profile is LumaProfile => Boolean(profile))
       : [];
     const exchanges = eventId ? exchangesFor(this.exchange(), eventId) : [];
-    const pendingApprovalCount = exchanges.filter((item) => item.status === "pending").length;
+    const squadInvites = eventId ? squadInvitesFor(this.exchange(), eventId) : [];
+    const pendingApprovalCount =
+      exchanges.filter((item) => item.status === "pending").length +
+      squadInvites.filter((item) => item.status === "pending").length;
     const activeBotCount = presence.filter((record) => record.state === "active").length;
 
     return {
@@ -262,6 +276,7 @@ export class LobbyMemory {
       presence,
       profiles,
       exchanges,
+      squadInvites,
       session,
       joinUrl: join,
       checklist: deriveChecklist({
@@ -454,6 +469,42 @@ export class LobbyMemory {
     return leaveSquad(this.exchange(), actor, eventId, squadId);
   }
 
+  respondInvite(
+    actor: Actor,
+    eventId: string,
+    inviteId: string,
+    status: SquadInviteStatus,
+  ): LobbySnapshot {
+    return respondSquadInvite(this.exchange(), actor, eventId, inviteId, status);
+  }
+
+  kickAttendee(actor: Actor, eventId: string, attendeeId: string): LobbySnapshot {
+    return kickAttendee(this.admin(), actor, eventId, attendeeId);
+  }
+
+  removeFromSquad(actor: Actor, eventId: string, squadId: string, attendeeId: string): LobbySnapshot {
+    return removeFromSquad(this.admin(), actor, eventId, squadId, attendeeId);
+  }
+
+  deleteEvent(actor: Actor, eventId: string): { ok: true } {
+    return deleteEvent(this.admin(), actor, eventId);
+  }
+
+  applyPrompt(
+    actor: Actor,
+    input: { eventId: string; botId: string; prompt: string },
+  ): LobbySnapshot {
+    const current = this.tokens.get(tokenKey(input.eventId, input.botId));
+    const intent = parseGrokPrompt(input.prompt, current?.taskLabel ?? "Lobby task");
+    return this.sync(actor, {
+      eventId: input.eventId,
+      botId: input.botId,
+      taskLabel: intent.taskLabel,
+      status: intent.status,
+      focus: intent.focus,
+    });
+  }
+
   proposeExchange(
     actor: Actor,
     input: {
@@ -561,7 +612,24 @@ export class LobbyMemory {
   private exchange(): ExchangeStore {
     return {
       exchanges: this.exchanges,
+      squadInvites: this.squadInvites,
       tokens: this.tokens,
+      requireEvent: (eventId) => this.requireEvent(eventId),
+      actor: (input, event) => this.actor(input, event),
+      snapshot: (eventId, actor) => this.snapshot({ eventId, actor, origin: "" }),
+      emit: (eventId) => this.emit(eventId),
+    };
+  }
+
+  private admin(): AdminStore {
+    return {
+      events: this.events,
+      tokens: this.tokens,
+      presence: this.presence,
+      claimed: this.claimed,
+      exchanges: this.exchanges,
+      squadInvites: this.squadInvites,
+      shareCopied: this.shareCopied,
       requireEvent: (eventId) => this.requireEvent(eventId),
       actor: (input, event) => this.actor(input, event),
       snapshot: (eventId, actor) => this.snapshot({ eventId, actor, origin: "" }),

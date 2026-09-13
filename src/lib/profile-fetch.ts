@@ -1,4 +1,5 @@
 import type { LumaProfile } from "@/lib/domain";
+import { fetchLumaUser } from "@/lib/luma-client";
 
 export type ProfileInputs = {
   lumaProfileUrl?: string;
@@ -109,8 +110,10 @@ export async function resolvePublicProfile(
   const originHandle = inputs.originHandle ?? parseOriginHandle(inputs.originProfileUrl ?? "") ?? undefined;
 
   const githubBio = githubHandle ? await fetchGithubBio(githubHandle) : undefined;
+  const luma = lumaHandle ? await fetchLumaUser(lumaHandle) : null;
   const bioParts = [
-    lumaHandle ? `Luma @${lumaHandle}` : null,
+    luma?.bio,
+    lumaHandle && !luma?.bio ? `Luma @${lumaHandle}` : null,
     githubHandle ? `GitHub @${githubHandle}` : null,
     originHandle ? `Origin @${originHandle}` : null,
     githubBio,
@@ -119,9 +122,9 @@ export async function resolvePublicProfile(
   const profile: LumaProfile = {
     userId,
     bio: bioParts.length > 0 ? bioParts.join(" · ") : undefined,
-    twitter: undefined,
-    linkedin: undefined,
-    pastEvents: [],
+    twitter: luma?.twitter,
+    linkedin: luma?.linkedin,
+    pastEvents: luma?.pastEvents ?? [],
     githubHandle,
     originHandle,
     githubBio,

@@ -7,7 +7,7 @@ import {
   type ShareLevel,
   assertNever,
 } from "@/lib/domain";
-import { canViewFullToken, roleForEvent } from "@/lib/policy";
+import { canViewFullToken } from "@/lib/policy";
 import { clone, hydrateSquads } from "@/lib/lobby-store-helpers";
 import type { StoredEvent, UserPrefs } from "@/lib/seed";
 
@@ -24,13 +24,14 @@ export function sessionView(
   const isClaimed = Boolean(stored && actor.userId && claimed.get(stored.id)?.has(actor.userId));
   return {
     userId: actor.userId,
-    role: stored ? roleForEvent(actor.userId, stored.hostUserId, stored) : actor.role,
+    role: actor.role,
     slot: actor.slot,
     claimed: isClaimed,
     permissionsAccepted: userPrefs?.permissionsAccepted ?? false,
     shareLevel: userPrefs?.shareLevel ?? "label+status",
     shareTokens: userPrefs?.shareTokens ?? true,
     hasGrokBot: userPrefs?.hasGrokBot ?? actor.slot === "you",
+    hostAuthenticated: actor.hostAuthenticated === true,
   };
 }
 

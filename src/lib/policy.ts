@@ -1,4 +1,4 @@
-import type { Actor, Event, Squad } from "@/lib/domain";
+import { assertNever, type Actor, type Event, type Squad, type SquadInvite } from "@/lib/domain";
 
 export function roleForEvent(userId: string | null, hostUserId: string, event: Event): Actor["role"] {
   if (!userId) {
@@ -82,6 +82,56 @@ export function canLeaveSquad(actor: Actor, squad: Squad): boolean {
 
 export function canProposeExchange(actor: Actor, fromBotId: string): boolean {
   return actor.userId !== null && actor.userId === fromBotId;
+}
+
+export function canKickAttendee(actor: Actor, event: Event, attendeeId: string): boolean {
+  if (!actor.hostAuthenticated || actor.role !== "host") {
+    return false;
+  }
+  if (attendeeId === actor.userId) {
+    return false;
+  }
+  return event.attendees.some((person) => person.id === attendeeId);
+}
+
+export function canDeleteEvent(actor: Actor, event: Event): boolean {
+  return actor.hostAuthenticated === true && actor.role === "host" && actor.userId !== null;
+}
+
+export function canRemoveFromSquad(actor: Actor, squad: Squad, attendeeId: string): boolean {
+  if (actor.userId === null) {
+    return false;
+  }
+  const isMember = squad.members.some((member) => member.id === attendeeId);
+  if (!isMember) {
+    return false;
+  }
+  if (actor.hostAuthenticated && actor.role === "host") {
+    return true;
+  }
+  return squad.organizerId === actor.userId && attendeeId !== actor.userId;
+}
+
+export function canRespondSquadInvite(actor: Actor, invite: SquadInvite, event: Event): boolean {
+  if (actor.userId === null) {
+    return false;
+  }
+  if (invite.status !== "pending") {
+    return false;
+  }
+  if (actor.hostAuthenticated && actor.role === "host") {
+    return true;
+  }
+  switch (invite.direction) {
+    case "invite":
+      return actor.userId === invite.toBotId;
+    case "request": {
+      const squad = event.squads.find((item) => item.id === invite.squadId);
+      return actor.userId === invite.toBotId || Boolean(squad && squad.organizerId === actor.userId);
+    }
+    default:
+      return assertNever(invite.direction, "squad invite direction");
+  }
 }
 
 export function canResolveExchange(

@@ -5,6 +5,8 @@ import {
   type LobbyToken,
   type ShareLevel,
   type Squad,
+  type SquadInvite,
+  type SquadInviteStatus,
   type TokenExchangeRequest,
   type TokenStatus,
   createId,
@@ -16,12 +18,14 @@ import {
   canProposeExchange,
   canRequestJoin,
   canResolveExchange,
+  canRespondSquadInvite,
 } from "@/lib/policy";
 import { hydrateSquads, LobbyError } from "@/lib/lobby-store-helpers";
 import type { StoredEvent } from "@/lib/seed";
 
 export type ExchangeStore = {
   exchanges: Map<string, TokenExchangeRequest>;
+  squadInvites: Map<string, SquadInvite>;
   tokens: Map<string, LobbyToken>;
   requireEvent(eventId: string): StoredEvent;
   actor(actor: Actor, event: StoredEvent | null): Actor;
@@ -31,6 +35,29 @@ export type ExchangeStore = {
 
 export function exchangesFor(store: ExchangeStore, eventId: string): TokenExchangeRequest[] {
   return [...store.exchanges.values()].filter((item) => item.eventId === eventId);
+}
+
+export function squadInvitesFor(store: ExchangeStore, eventId: string): SquadInvite[] {
+  return [...store.squadInvites.values()].filter((item) => item.eventId === eventId);
+}
+
+function pendingInvite(
+  store: ExchangeStore,
+  eventId: string,
+  squadId: string,
+  fromBotId: string,
+  toBotId: string,
+  direction: SquadInvite["direction"],
+): SquadInvite | undefined {
+  return [...store.squadInvites.values()].find(
+    (item) =>
+      item.eventId === eventId &&
+      item.squadId === squadId &&
+      item.fromBotId === fromBotId &&
+      item.toBotId === toBotId &&
+      item.direction === direction &&
+      item.status === "pending",
+  );
 }
 
 export function inviteToSquad(
@@ -45,6 +72,9 @@ export function inviteToSquad(
   const target = stored.attendees.find((person) => person.id === attendeeId);
   if (!target) {
     throw new LobbyError("That attendee isn't in this lobby.", 404);
+  }
+  if (live.userId === target.id) {
+    throw new LobbyError("You can't invite yourself.", 400);
   }
   const squad = squadId
     ? stored.squads.find((item) => item.id === squadId)
@@ -62,7 +92,25 @@ export function inviteToSquad(
       moveToSquad(stored, live.userId, destination.id);
     }
   }
-  moveToSquad(stored, target.id, destination.id);
+  if (target.squadId === destination.id) {
+    throw new LobbyError("They're already in that group.", 409);
+  }
+  const fromBotId = live.userId ?? stored.hostUserId;
+  const existing = pendingInvite(store, eventId, destination.id, fromBotId, target.id, "invite");
+  if (existing) {
+    return store.snapshot(eventId, live);
+  }
+  const invite: SquadInvite = {
+    id: createId("inv"),
+    eventId,
+    squadId: destination.id,
+    fromBotId,
+    toBotId: target.id,
+    direction: "invite",
+    status: "pending",
+    createdAt: new Date().toISOString(),
+  };
+  store.squadInvites.set(invite.id, invite);
   store.emit(eventId);
   return store.snapshot(eventId, live);
 }
@@ -85,7 +133,58 @@ export function requestJoinSquad(
   if (!canRequestJoin(live, squad)) {
     throw new LobbyError("This squad is closed, or you're already in it.", 403);
   }
-  moveToSquad(stored, live.userId, squad.id);
+  const existing = pendingInvite(store, eventId, squad.id, live.userId, squad.organizerId, "request");
+  if (existing) {
+    return store.snapshot(eventId, live);
+  }
+  const invite: SquadInvite = {
+    id: createId("inv"),
+    eventId,
+    squadId: squad.id,
+    fromBotId: live.userId,
+    toBotId: squad.organizerId,
+    direction: "request",
+    status: "pending",
+    createdAt: new Date().toISOString(),
+  };
+  store.squadInvites.set(invite.id, invite);
+  store.emit(eventId);
+  return store.snapshot(eventId, live);
+}
+
+export function respondSquadInvite(
+  store: ExchangeStore,
+  actor: Actor,
+  eventId: string,
+  inviteId: string,
+  status: SquadInviteStatus,
+): LobbySnapshot {
+  if (status === "pending") {
+    throw new LobbyError("Resolve with accepted or rejected.", 400);
+  }
+  const stored = store.requireEvent(eventId);
+  const live = store.actor(actor, stored);
+  const invite = store.squadInvites.get(inviteId);
+  if (!invite || invite.eventId !== eventId) {
+    throw new LobbyError("No squad invite with that id.", 404);
+  }
+  if (invite.status !== "pending") {
+    throw new LobbyError("That invite is already resolved.", 409);
+  }
+  if (!canRespondSquadInvite(live, invite, stored)) {
+    throw new LobbyError("Only the invitee, organizer, or host can answer this.", 403);
+  }
+  invite.status = status;
+  invite.resolvedAt = new Date().toISOString();
+  if (status === "accepted") {
+    const moverId = invite.direction === "invite" ? invite.toBotId : invite.fromBotId;
+    const stillHere = stored.attendees.some((person) => person.id === moverId);
+    const squad = stored.squads.find((item) => item.id === invite.squadId);
+    if (!stillHere || !squad) {
+      throw new LobbyError("That group or bot is gone.", 404);
+    }
+    moveToSquad(stored, moverId, invite.squadId);
+  }
   store.emit(eventId);
   return store.snapshot(eventId, live);
 }
@@ -117,6 +216,12 @@ export function leaveSquad(
   const remaining = stored.squads.find((item) => item.id === squad.id);
   if (remaining && remaining.members.length === 0) {
     stored.squads = stored.squads.filter((item) => item.id !== squad.id);
+    for (const [id, invite] of store.squadInvites) {
+      if (invite.squadId === squad.id && invite.status === "pending") {
+        invite.status = "rejected";
+        invite.resolvedAt = new Date().toISOString();
+      }
+    }
   } else if (remaining && remaining.organizerId === live.userId && remaining.members[0]) {
     remaining.organizerId = remaining.members[0].id;
   }

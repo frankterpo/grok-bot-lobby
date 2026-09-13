@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 
-import type { Actor, ExchangeStatus, LobbySnapshot, ShareLevel, TokenStatus } from "@/lib/domain";
+import type { Actor, ExchangeStatus, LobbySnapshot, ShareLevel, SquadInviteStatus, TokenStatus } from "@/lib/domain";
 import { LobbyMemory, LobbyError } from "@/lib/lobby-store";
 import { lobbyErrorPayload } from "@/lib/lobby-store-helpers";
 import type { PersistedLobbyState } from "@/lib/lobby-persisted";
@@ -108,6 +108,33 @@ export class LobbyStoreDO extends DurableObject<LobbyStoreEnv> {
           payload.actor as Actor,
           payload.eventId as string,
           payload.squadId as string | undefined,
+        );
+      case "respondInvite":
+        return lobby.respondInvite(
+          payload.actor as Actor,
+          payload.eventId as string,
+          payload.inviteId as string,
+          payload.status as SquadInviteStatus,
+        );
+      case "kickAttendee":
+        return lobby.kickAttendee(
+          payload.actor as Actor,
+          payload.eventId as string,
+          payload.attendeeId as string,
+        );
+      case "removeFromSquad":
+        return lobby.removeFromSquad(
+          payload.actor as Actor,
+          payload.eventId as string,
+          payload.squadId as string,
+          payload.attendeeId as string,
+        );
+      case "deleteEvent":
+        return lobby.deleteEvent(payload.actor as Actor, payload.eventId as string);
+      case "applyPrompt":
+        return lobby.applyPrompt(
+          payload.actor as Actor,
+          payload.input as Parameters<LobbyMemory["applyPrompt"]>[1],
         );
       case "proposeExchange":
         return lobby.proposeExchange(payload.actor as Actor, payload.input as Parameters<LobbyMemory["proposeExchange"]>[1]);

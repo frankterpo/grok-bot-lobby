@@ -28,16 +28,14 @@ export function BotCard({ attendee, token, presence, selected, now, onSelect }: 
       )}
     >
       <div className="flex w-[min(100%,56px)] shrink-0 items-center justify-center">
-        <GrokBot attendee={attendee} size="lg" animated={animated} />
+        <GrokBot attendee={attendee} size="lg" animated={animated} youRing={attendee.isCurrentUser} />
       </div>
-      {attendee.isCurrentUser ? (
-        <div className="flex w-full min-w-0 items-center justify-center gap-1 px-0.5">
-          <PresenceDot state={state} />
-          <span className="truncate text-[11px] text-white/80">{attendee.name}</span>
-        </div>
-      ) : (
-        <span className="w-full min-w-0 truncate px-0.5 text-[11px] text-white/80">{attendee.name}</span>
-      )}
+      <div className="flex w-full min-w-0 items-center justify-center gap-1 px-0.5">
+        <PresenceDot state={state} pulse={attendee.isCurrentUser && state === "active"} />
+        <span className="truncate text-[11px] text-white/80">
+          {attendee.isCurrentUser ? `${attendee.name}` : attendee.name}
+        </span>
+      </div>
     </button>
   );
 }

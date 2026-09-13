@@ -84,7 +84,7 @@ npm run sync-token -- --url http://127.0.0.1:4521 --eventId EVENT_ID --botId <AL
 npm run join-lobby -- --code CODE --url http://127.0.0.1:4521 --name Bob --color yellow --task "Pairing on auth"
 ```
 
-Both appear live (SSE). Host selects Alice → **Invite to Group**. Select a squad → **Request to join** / **Leave**.
+Both appear live (SSE). Host selects Alice → **Invite to party** (pending until they Accept). Select a squad → **Request to join** / **Leave group**. Community actions also run through `npm run grok-community`.
 
 Token exchange:
 

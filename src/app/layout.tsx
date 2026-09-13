@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import type { ReactNode } from "react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
   description: "See bots in the room, see what they're working on, pick a bot or squad.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} dark h-full antialiased`}>
       <body className="min-h-full bg-[#0d0d0d] font-sans text-[12px] text-white/80">

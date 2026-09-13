@@ -1,8 +1,10 @@
 import {
   isShareLevel,
+  isSquadInviteStatus,
   isTokenStatus,
   parseBotColor,
   type ShareLevel,
+  type SquadInviteStatus,
   type TokenStatus,
 } from "@/lib/domain";
 import { truncateTaskLabel } from "@/lib/token-utils";
@@ -98,6 +100,33 @@ export type ExchangeProposeBody = {
 export type ExchangeResolveBody = {
   eventId: string;
   requestId: string;
+};
+
+export type SquadRespondBody = {
+  eventId: string;
+  inviteId: string;
+  status: SquadInviteStatus;
+};
+
+export type KickBody = {
+  eventId: string;
+  attendeeId: string;
+};
+
+export type EventDeleteBody = {
+  eventId: string;
+};
+
+export type SquadRemoveBody = {
+  eventId: string;
+  squadId: string;
+  attendeeId: string;
+};
+
+export type PromptBody = {
+  eventId: string;
+  botId: string;
+  prompt: string;
 };
 
 export type PrefsBody = {
@@ -314,6 +343,68 @@ export function parseExchangeResolveBody(value: unknown): ExchangeResolveBody | 
     return null;
   }
   return { eventId, requestId };
+}
+
+export function parseSquadRespondBody(value: unknown): SquadRespondBody | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const eventId = asString(value.eventId);
+  const inviteId = asString(value.inviteId);
+  const statusRaw = asString(value.status);
+  if (!eventId || !inviteId || !statusRaw || !isSquadInviteStatus(statusRaw) || statusRaw === "pending") {
+    return null;
+  }
+  return { eventId, inviteId, status: statusRaw };
+}
+
+export function parseKickBody(value: unknown): KickBody | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const eventId = asString(value.eventId);
+  const attendeeId = asString(value.attendeeId);
+  if (!eventId || !attendeeId) {
+    return null;
+  }
+  return { eventId, attendeeId };
+}
+
+export function parseEventDeleteBody(value: unknown): EventDeleteBody | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const eventId = asString(value.eventId);
+  if (!eventId) {
+    return null;
+  }
+  return { eventId };
+}
+
+export function parseSquadRemoveBody(value: unknown): SquadRemoveBody | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const eventId = asString(value.eventId);
+  const squadId = asString(value.squadId);
+  const attendeeId = asString(value.attendeeId);
+  if (!eventId || !squadId || !attendeeId) {
+    return null;
+  }
+  return { eventId, squadId, attendeeId };
+}
+
+export function parsePromptBody(value: unknown): PromptBody | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const eventId = asString(value.eventId);
+  const botId = asString(value.botId);
+  const prompt = asString(value.prompt);
+  if (!eventId || !botId || !prompt) {
+    return null;
+  }
+  return { eventId, botId, prompt };
 }
 
 export function parsePrefsBody(value: unknown): PrefsBody | null {

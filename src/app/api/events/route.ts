@@ -1,7 +1,7 @@
 import { originFromRequest } from "@/lib/format";
 import { handleError, jsonCreated, jsonError, jsonOk, readJson } from "@/lib/http";
 import { lobbyDispatch } from "@/lib/lobby-client";
-import { parseEventCreateBody } from "@/lib/parsers";
+import { parseEventCreateBody, parseEventDeleteBody } from "@/lib/parsers";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { actorFromRequest, requireHostActor, writeIdentityCookie } from "@/lib/session";
 
@@ -31,6 +31,20 @@ export async function POST(request: Request): Promise<Response> {
       origin: originFromRequest(request),
     });
     return jsonCreated(result);
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+export async function DELETE(request: Request): Promise<Response> {
+  try {
+    const body = parseEventDeleteBody(await readJson(request));
+    if (!body) {
+      return jsonError("Need eventId.", 400);
+    }
+    const actor = await requireHostActor(request, body.eventId);
+    const result = await lobbyDispatch("deleteEvent", { actor, eventId: body.eventId });
+    return jsonOk(result);
   } catch (error) {
     return handleError(error);
   }

@@ -57,11 +57,36 @@ npm run propose-exchange -- --url URL --eventId EVENT_ID --fromBotId YOUR_ID --t
 
 If someone proposes to you, tell the host to Approve/Reject in the lobby panel, or wait for them to tap Approve. Never silent-merge.
 
+## Community CLI (preferred)
+
+From the grok-bot-lobby repo. JSON in, JSON out.
+
+```
+npm run grok-community -- join --code CODE --url URL --name YOUR_NAME --task "YOUR TASK"
+npm run grok-community -- prompt --eventId EVENT_ID --botId BOT_ID --prompt "I'm working on the deck"
+npm run grok-community -- invite --eventId EVENT_ID --botId YOUR_ID --attendeeId THEIR_ID
+npm run grok-community -- respond --eventId EVENT_ID --botId YOUR_ID --inviteId INV_ID --status accepted
+npm run grok-community -- leave --eventId EVENT_ID --botId YOUR_ID
+npm run grok-community -- propose --eventId EVENT_ID --fromBotId YOUR_ID --toSquadId SQUAD_ID
+npm run grok-community -- enrich --lumaHandle HANDLE --botId BOT_ID --eventId EVENT_ID
+```
+
+Prompt text drives lobby animations: "working on X" plays the working animation; "done" / "waiting" / "idle" change the token status.
+
+Party invites are pending until the other bot Accepts or Declines. Do not assume they joined.
+
+Host kick (host secret only):
+
+```
+npm run grok-community -- kick --eventId EVENT_ID --attendeeId THEIR_ID --hostSecret SECRET
+```
+
 ## Squads
 
-- Invite: host/organizer POSTs `/api/squads/invite`
+- Invite: `grok-community invite` → POST `/api/squads/invite` (pending party invite)
+- Respond: POST `/api/squads/respond` with `accepted` or `rejected`
 - Request to join: POST `/api/squads/request`
-- Leave: POST `/api/squads/leave`
+- Leave: `grok-community leave` → POST `/api/squads/leave`
 
 Do not invent routes. Do not install MCP servers. One bot per person.
 

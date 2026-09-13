@@ -100,6 +100,36 @@ export async function lobbyDispatch<T>(op: string, payload: Record<string, unkno
           payload.eventId as string,
           payload.squadId as string | undefined,
         ) as T;
+      case "respondInvite":
+        return lobby.respondInvite(
+          payload.actor as Parameters<LobbyMemory["respondInvite"]>[0],
+          payload.eventId as string,
+          payload.inviteId as string,
+          payload.status as Parameters<LobbyMemory["respondInvite"]>[3],
+        ) as T;
+      case "kickAttendee":
+        return lobby.kickAttendee(
+          payload.actor as Parameters<LobbyMemory["kickAttendee"]>[0],
+          payload.eventId as string,
+          payload.attendeeId as string,
+        ) as T;
+      case "removeFromSquad":
+        return lobby.removeFromSquad(
+          payload.actor as Parameters<LobbyMemory["removeFromSquad"]>[0],
+          payload.eventId as string,
+          payload.squadId as string,
+          payload.attendeeId as string,
+        ) as T;
+      case "deleteEvent":
+        return lobby.deleteEvent(
+          payload.actor as Parameters<LobbyMemory["deleteEvent"]>[0],
+          payload.eventId as string,
+        ) as T;
+      case "applyPrompt":
+        return lobby.applyPrompt(
+          payload.actor as Parameters<LobbyMemory["applyPrompt"]>[0],
+          payload.input as Parameters<LobbyMemory["applyPrompt"]>[1],
+        ) as T;
       case "proposeExchange":
         return lobby.proposeExchange(
           payload.actor as Parameters<LobbyMemory["proposeExchange"]>[0],

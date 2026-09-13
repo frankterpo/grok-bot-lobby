@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ChevronRight, PanelRightClose } from "lucide-react";
 
+import { ConfirmAction } from "@/components/lobby/confirm-action";
 import { TokenShareToggle } from "@/components/lobby/token-composer";
 import { TokenExchanges } from "@/components/lobby/token-exchanges";
 import { GrokBot } from "@/components/lobby/grok-bot";
@@ -26,7 +27,15 @@ import {
   type Squad,
   type TokenExchangeRequest,
 } from "@/lib/domain";
-import { canEditOwnBot, canInviteToSquad, canLeaveSquad, canProposeExchange, canRequestJoin } from "@/lib/policy";
+import {
+  canEditOwnBot,
+  canInviteToSquad,
+  canKickAttendee,
+  canLeaveSquad,
+  canProposeExchange,
+  canRemoveFromSquad,
+  canRequestJoin,
+} from "@/lib/policy";
 import { cn } from "@/lib/utils";
 
 type ContextPanelProps = {
@@ -45,7 +54,9 @@ type ContextPanelProps = {
   onInvite: (attendeeId: string) => Promise<void>;
   onRequest: (squadId: string) => Promise<void>;
   onLeave: (squadId: string) => Promise<void>;
-  onPropose: (input: { toBotId?: string; toSquadId?: string }) => Promise<void>;
+  onKick: (attendeeId: string) => Promise<void>;
+  onRemoveFromSquad: (squadId: string, attendeeId: string) => Promise<void>;
+  onPropose: (input: { toBotId?: string; toSquadId?: string }) => void;
   onApprove: (requestId: string) => Promise<void>;
   onReject: (requestId: string) => Promise<void>;
   shareTokens: boolean;
@@ -70,6 +81,8 @@ export function ContextPanel({
   onInvite,
   onRequest,
   onLeave,
+  onKick,
+  onRemoveFromSquad,
   onPropose,
   onApprove,
   onReject,
@@ -111,6 +124,8 @@ export function ContextPanel({
           onInvite,
           onRequest,
           onLeave,
+          onKick,
+          onRemoveFromSquad,
           onPropose,
           onApprove,
           onReject,
@@ -189,8 +204,10 @@ function panelBody(args: Omit<ContextPanelProps, "onCollapse">): ReactNode {
           attendees={args.attendees}
           canInvite={canInviteToSquad(args.actor, args.event)}
           canPropose={Boolean(args.actor.userId && canProposeExchange(args.actor, args.actor.userId))}
+          canKick={canKickAttendee(args.actor, args.event, attendee.id)}
           onInvite={() => args.onInvite(attendee.id)}
           onPropose={() => args.onPropose({ toBotId: attendee.id })}
+          onKick={() => args.onKick(attendee.id)}
           onApprove={args.onApprove}
           onReject={args.onReject}
         />
@@ -212,6 +229,7 @@ function panelBody(args: Omit<ContextPanelProps, "onCollapse">): ReactNode {
           onSelectAttendee={args.onSelectAttendee}
           onRequest={() => args.onRequest(squad.id)}
           onLeave={() => args.onLeave(squad.id)}
+          onRemoveMember={(attendeeId) => args.onRemoveFromSquad(squad.id, attendeeId)}
           onPropose={() => args.onPropose({ toSquadId: squad.id })}
           onApprove={args.onApprove}
           onReject={args.onReject}
@@ -376,8 +394,10 @@ function AttendeeDetail({
   attendees,
   canInvite,
   canPropose,
+  canKick,
   onInvite,
   onPropose,
+  onKick,
   onApprove,
   onReject,
 }: {
@@ -393,8 +413,10 @@ function AttendeeDetail({
   attendees: Attendee[];
   canInvite: boolean;
   canPropose: boolean;
+  canKick: boolean;
   onInvite: () => Promise<void>;
-  onPropose: () => Promise<void>;
+  onPropose: () => void;
+  onKick: () => Promise<void>;
   onApprove: (requestId: string) => Promise<void>;
   onReject: (requestId: string) => Promise<void>;
 }) {
@@ -416,7 +438,7 @@ function AttendeeDetail({
       />
       <div className="mt-auto space-y-2 border-t border-[#262626] p-3">
         {canPropose ? (
-          <Button type="button" variant="outline" className="w-full border-[#262626]" onClick={() => void onPropose()}>
+          <Button type="button" variant="outline" className="w-full border-[#262626]" onClick={onPropose}>
             Propose token
           </Button>
         ) : null}
@@ -426,8 +448,17 @@ function AttendeeDetail({
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => void onInvite()}
           >
-            Invite to Group
+            Invite to party
           </Button>
+        ) : null}
+        {canKick ? (
+          <ConfirmAction
+            label="Kick from lobby"
+            confirmLabel="Confirm kick"
+            variant="destructive"
+            className="w-full"
+            onConfirm={onKick}
+          />
         ) : null}
       </div>
     </div>
@@ -444,6 +475,7 @@ function SquadDetail({
   onSelectAttendee,
   onRequest,
   onLeave,
+  onRemoveMember,
   onPropose,
   onApprove,
   onReject,
@@ -457,7 +489,8 @@ function SquadDetail({
   onSelectAttendee: (id: string) => void;
   onRequest: () => Promise<void>;
   onLeave: () => Promise<void>;
-  onPropose: () => Promise<void>;
+  onRemoveMember: (attendeeId: string) => Promise<void>;
+  onPropose: () => void;
   onApprove: (requestId: string) => Promise<void>;
   onReject: (requestId: string) => Promise<void>;
 }) {
@@ -494,16 +527,25 @@ function SquadDetail({
         <p className="micro text-white/40">Members</p>
         <ul className="mt-2">
           {squad.members.map((member) => (
-            <li key={member.id}>
+            <li key={member.id} className="flex items-center gap-2 rounded-md px-1 py-1.5 hover:bg-[#161616]">
               <button
                 type="button"
-                className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left hover:bg-[#161616]"
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
                 onClick={() => onSelectAttendee(member.id)}
               >
                 <GrokBot attendee={member} size="sm" />
                 <span className="flex-1 text-[12px] text-white/80">{member.name}</span>
                 <ChevronRight className="size-3.5 text-white/30" strokeWidth={1.5} />
               </button>
+              {canRemoveFromSquad(actor, squad, member.id) ? (
+                <button
+                  type="button"
+                  className="text-[10px] text-white/35 hover:text-red-300"
+                  onClick={() => void onRemoveMember(member.id)}
+                >
+                  Remove
+                </button>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -518,7 +560,7 @@ function SquadDetail({
       />
       <div className="mt-auto space-y-2 border-t border-[#262626] p-3">
         {actor.userId && canProposeExchange(actor, actor.userId) ? (
-          <Button type="button" variant="outline" className="w-full border-[#262626]" onClick={() => void onPropose()}>
+          <Button type="button" variant="outline" className="w-full border-[#262626]" onClick={onPropose}>
             Propose token to squad
           </Button>
         ) : null}
@@ -532,9 +574,12 @@ function SquadDetail({
           </Button>
         ) : null}
         {canLeaveSquad(actor, squad) ? (
-          <Button type="button" variant="outline" className="w-full border-[#262626]" onClick={() => void onLeave()}>
-            Leave
-          </Button>
+          <ConfirmAction
+            label="Leave group"
+            confirmLabel="Confirm leave"
+            className="w-full border-[#262626]"
+            onConfirm={onLeave}
+          />
         ) : null}
       </div>
     </div>

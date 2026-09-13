@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Inbox, Plus, Search } from "lucide-react";
+import { Inbox, Plus, Search, Trash2 } from "lucide-react";
 
 import { EventCodeChip } from "@/components/lobby/event-code-chip";
 import { GrokBotMark } from "@/components/lobby/grok-bot-mark";
@@ -28,6 +28,7 @@ type LobbySidebarProps = {
   profileAnimated?: boolean;
   onSelect: (eventId: string) => void;
   onCreate: () => void;
+  onDeleteEvent?: (eventId: string) => Promise<void>;
   onProfileClick?: () => void;
 };
 
@@ -43,6 +44,7 @@ export function LobbySidebar({
   profileAnimated = false,
   onSelect,
   onCreate,
+  onDeleteEvent,
   onProfileClick,
 }: LobbySidebarProps) {
   const [query, setQuery] = useState("");
@@ -105,34 +107,48 @@ export function LobbySidebar({
           filtered.map((event) => {
             const active = event.id === activeEventId;
             return (
-              <button
+              <div
                 key={event.id}
-                type="button"
-                onClick={() => onSelect(event.id)}
                 className={cn(
-                  "lobby-event-row w-full rounded-lg border px-3 py-2.5 text-left transition-colors",
+                  "lobby-event-row flex w-full items-start gap-1 rounded-lg border px-2 py-2.5 transition-colors",
                   active
                     ? "border-transparent bg-[var(--grok-sidebar-selected)]"
                     : "border-transparent hover:bg-[var(--grok-sidebar-hover)]",
                 )}
               >
-                <p
-                  className={cn(
-                    "truncate text-[12px] font-medium",
-                    active ? "text-white/90" : "text-white/85",
-                  )}
+                <button
+                  type="button"
+                  onClick={() => onSelect(event.id)}
+                  className="min-w-0 flex-1 px-1 text-left"
                 >
-                  {event.name}
-                </p>
-                <p className="micro mt-0.5 text-white/35">{formatEventDate(event.date)}</p>
-                {active && joinUrl && canShareEvent(actor) ? (
-                  <div className="mt-1.5">
-                    <EventCodeChip code={event.eventCode} eventId={event.id} joinUrl={joinUrl} />
-                  </div>
-                ) : (
-                  <p className="micro mt-1 text-white/30">{event.eventCode}</p>
-                )}
-              </button>
+                  <p
+                    className={cn(
+                      "truncate text-[12px] font-medium",
+                      active ? "text-white/90" : "text-white/85",
+                    )}
+                  >
+                    {event.name}
+                  </p>
+                  <p className="micro mt-0.5 text-white/35">{formatEventDate(event.date)}</p>
+                  {active && joinUrl && canShareEvent(actor) ? (
+                    <div className="mt-1.5">
+                      <EventCodeChip code={event.eventCode} eventId={event.id} joinUrl={joinUrl} />
+                    </div>
+                  ) : (
+                    <p className="micro mt-1 text-white/30">{event.eventCode}</p>
+                  )}
+                </button>
+                {onDeleteEvent && canShareEvent(actor) ? (
+                  <button
+                    type="button"
+                    className="mt-0.5 shrink-0 p-1 text-white/25 hover:text-red-300"
+                    aria-label={`Delete ${event.name}`}
+                    onClick={() => void onDeleteEvent(event.id)}
+                  >
+                    <Trash2 className="size-3.5" strokeWidth={1.5} />
+                  </button>
+                ) : null}
+              </div>
             );
           })
         )}

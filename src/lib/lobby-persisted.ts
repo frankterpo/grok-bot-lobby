@@ -2,6 +2,7 @@ import type {
   LobbyToken,
   LumaProfile,
   PresenceRecord,
+  SquadInvite,
   TokenExchangeRequest,
 } from "@/lib/domain";
 import type { StoredEvent, UserPrefs } from "@/lib/seed";
@@ -17,6 +18,7 @@ export type PersistedLobbyState = {
   claimed: Array<[string, string[]]>;
   shareCopied: string[];
   exchanges: Array<[string, TokenExchangeRequest]>;
+  squadInvites?: Array<[string, SquadInvite]>;
 };
 
 export function emptyPersistedState(): PersistedLobbyState {
@@ -30,5 +32,6 @@ export function emptyPersistedState(): PersistedLobbyState {
     claimed: [],
     shareCopied: [],
     exchanges: [],
+    squadInvites: [],
   };
 }

@@ -11,7 +11,9 @@ import { LobbySidebar } from "@/components/lobby/lobby-sidebar";
 import { OnboardingScreen } from "@/components/lobby/onboarding-screen";
 import { PermissionsWalkthrough } from "@/components/lobby/permissions-walkthrough";
 import { SessionSwitcher } from "@/components/lobby/session-switcher";
+import { SquadInviteBanner } from "@/components/lobby/squad-invite-banner";
 import { TokenExchanges } from "@/components/lobby/token-exchanges";
+import { TokenProposeDialog, type ProposeTarget } from "@/components/lobby/token-propose-dialog";
 import { Button } from "@/components/ui/button";
 import {
   fetchSnapshot,
@@ -33,6 +35,8 @@ import {
   type ShareLevel,
   presenceState,
 } from "@/lib/domain";
+import { filterSoloAttendees, sortSoloAttendees } from "@/lib/grid-sort";
+import { persistLumaProfilesToStorage, readLumaProfilesFromStorage, mergeLumaProfiles } from "@/lib/profile-browser-cache";
 import { canShareEvent } from "@/lib/policy";
 import { CHECKLIST_COPY } from "@/lib/onboarding";
 import { resolveShareJoinUrl } from "@/lib/format";
@@ -49,6 +53,10 @@ export function LobbyApp() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [proposeTarget, setProposeTarget] = useState<ProposeTarget | null>(null);
+  const [proposeSending, setProposeSending] = useState(false);
+  const [proposeSent, setProposeSent] = useState(false);
+  const [proposeError, setProposeError] = useState<string | null>(null);
 
   const slot = typeof window === "undefined" ? "you" : readSlot();
 
@@ -174,6 +182,7 @@ export function LobbyApp() {
         slot: snapshot.session.slot,
         userId: snapshot.session.userId,
         role: snapshot.session.role,
+        hostAuthenticated: snapshot.session.hostAuthenticated,
       }
     : null;
 
@@ -193,34 +202,25 @@ export function LobbyApp() {
     return isBotWorking(record, token, now);
   }, [currentAttendee, snapshot, now]);
 
+  const profiles = useMemo(() => {
+    if (!snapshot) {
+      return [];
+    }
+    return mergeLumaProfiles(snapshot.profiles, readLumaProfilesFromStorage());
+  }, [snapshot]);
+
+  useEffect(() => {
+    if (snapshot?.profiles.length) {
+      persistLumaProfilesToStorage(snapshot.profiles);
+    }
+  }, [snapshot?.profiles]);
+
   const solo = useMemo(() => {
     if (!snapshot?.event) {
       return [];
     }
-    const ungrouped = snapshot.event.attendees.filter(
-      (attendee) =>
-        !attendee.squadId &&
-        (attendee.id === HOST_USER_ID ||
-          !attendee.id.startsWith("demo_") ||
-          snapshot.presence.find((item) => item.userId === attendee.id)?.claimed),
-    );
-    const rank = (id: string): number => {
-      if (id === snapshot.session.userId) {
-        return 0;
-      }
-      const record = snapshot.presence.find((item) => item.userId === id);
-      if (record?.state === "active") {
-        return 1;
-      }
-      if (id === HOST_USER_ID) {
-        return 2;
-      }
-      if (!id.startsWith("demo_")) {
-        return 3;
-      }
-      return 4;
-    };
-    return [...ungrouped].sort((a, b) => rank(a.id) - rank(b.id));
+    const ungrouped = filterSoloAttendees(snapshot.event.attendees, snapshot.presence, HOST_USER_ID);
+    return sortSoloAttendees(ungrouped, snapshot.session.userId, snapshot.presence, HOST_USER_ID);
   }, [snapshot]);
 
   async function updateSharePrefs(input: {
@@ -327,6 +327,41 @@ export function LobbyApp() {
     });
   }
 
+  async function respondInvite(inviteId: string, status: "accepted" | "rejected"): Promise<void> {
+    const liveEventId = snapshot?.event?.id;
+    if (!liveEventId) {
+      return;
+    }
+    await lobbyFetch("/api/squads/respond", {
+      method: "POST",
+      body: JSON.stringify({ eventId: liveEventId, inviteId, status }),
+    });
+  }
+
+  async function sendProposal(): Promise<void> {
+    if (!snapshot?.event || !snapshot.session.userId || !proposeTarget) {
+      return;
+    }
+    setProposeSending(true);
+    setProposeError(null);
+    const response = await lobbyFetch("/api/token-exchange/propose", {
+      method: "POST",
+      body: JSON.stringify({
+        eventId: snapshot.event.id,
+        fromBotId: snapshot.session.userId,
+        ...proposeTarget,
+      }),
+    });
+    if (!response.ok) {
+      const body = (await response.json()) as { error?: string };
+      setProposeError(body.error ?? "Could not propose token.");
+      setProposeSending(false);
+      return;
+    }
+    setProposeSending(false);
+    setProposeSent(true);
+  }
+
   return (
     <div className="relative flex h-screen overflow-hidden bg-[#0d0d0d] text-[12px] text-white/80">
       <LobbySidebar
@@ -344,6 +379,18 @@ export function LobbyApp() {
           void load(id);
         }}
         onCreate={() => setCreateOpen(true)}
+        onDeleteEvent={
+          actor.hostAuthenticated
+            ? async (id) => {
+                await lobbyFetch("/api/events", {
+                  method: "DELETE",
+                  body: JSON.stringify({ eventId: id }),
+                });
+                setSnapshot(null);
+                void load();
+              }
+            : undefined
+        }
         onProfileClick={() => {
           if (!snapshot.session.userId) {
             return;
@@ -398,6 +445,14 @@ export function LobbyApp() {
           </div>
         ) : null}
         {snapshot.event ? (
+          <SquadInviteBanner
+            invites={snapshot.squadInvites ?? []}
+            event={snapshot.event}
+            actor={actor}
+            onRespond={respondInvite}
+          />
+        ) : null}
+        {snapshot.event ? (
           <BotGrid
             solo={solo}
             squads={snapshot.event.squads}
@@ -444,7 +499,7 @@ export function LobbyApp() {
           attendees={snapshot.event.attendees}
           squads={snapshot.event.squads}
           tokens={snapshot.tokens}
-          profiles={snapshot.profiles}
+          profiles={profiles}
           presence={snapshot.presence}
           actor={actor}
           now={now}
@@ -476,18 +531,22 @@ export function LobbyApp() {
               body: JSON.stringify({ eventId: snapshot.event?.id, squadId }),
             });
           }}
-          onPropose={async (input) => {
-            if (!snapshot.event || !snapshot.session.userId) {
-              return;
-            }
-            await lobbyFetch("/api/token-exchange/propose", {
+          onKick={async (attendeeId) => {
+            await lobbyFetch("/api/bots/kick", {
               method: "POST",
-              body: JSON.stringify({
-                eventId: snapshot.event.id,
-                fromBotId: snapshot.session.userId,
-                ...input,
-              }),
+              body: JSON.stringify({ eventId: snapshot.event?.id, attendeeId }),
             });
+          }}
+          onRemoveFromSquad={async (squadId, attendeeId) => {
+            await lobbyFetch("/api/squads/remove", {
+              method: "POST",
+              body: JSON.stringify({ eventId: snapshot.event?.id, squadId, attendeeId }),
+            });
+          }}
+          onPropose={(input) => {
+            setProposeTarget(input);
+            setProposeSent(false);
+            setProposeError(null);
           }}
           onApprove={approveExchange}
           onReject={rejectExchange}
@@ -502,6 +561,26 @@ export function LobbyApp() {
         onOpenChange={setCreateOpen}
         onCreated={(event) => {
           void load(event.id);
+        }}
+      />
+      <TokenProposeDialog
+        open={proposeTarget !== null}
+        target={proposeTarget}
+        token={
+          snapshot.session.userId
+            ? snapshot.tokens.find((item) => item.botId === snapshot.session.userId)
+            : undefined
+        }
+        attendees={snapshot.event?.attendees ?? []}
+        squads={snapshot.event?.squads ?? []}
+        sending={proposeSending}
+        sent={proposeSent}
+        error={proposeError}
+        onConfirm={() => void sendProposal()}
+        onClose={() => {
+          setProposeTarget(null);
+          setProposeSent(false);
+          setProposeError(null);
         }}
       />
       <PermissionsWalkthrough

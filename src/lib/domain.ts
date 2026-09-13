@@ -143,6 +143,25 @@ export type SessionView = {
   shareLevel: ShareLevel;
   shareTokens: boolean;
   hasGrokBot: boolean;
+  hostAuthenticated: boolean;
+};
+
+export const SQUAD_INVITE_DIRECTIONS = ["invite", "request"] as const;
+export type SquadInviteDirection = (typeof SQUAD_INVITE_DIRECTIONS)[number];
+
+export const SQUAD_INVITE_STATUSES = ["pending", "accepted", "rejected"] as const;
+export type SquadInviteStatus = (typeof SQUAD_INVITE_STATUSES)[number];
+
+export type SquadInvite = {
+  id: string;
+  eventId: string;
+  squadId: string;
+  fromBotId: string;
+  toBotId: string;
+  direction: SquadInviteDirection;
+  status: SquadInviteStatus;
+  createdAt: string;
+  resolvedAt?: string;
 };
 
 export type ChecklistItemId =
@@ -168,6 +187,7 @@ export type LobbySnapshot = {
   presence: PresenceView[];
   profiles: LumaProfile[];
   exchanges: TokenExchangeRequest[];
+  squadInvites: SquadInvite[];
   session: SessionView;
   joinUrl: string | null;
   checklist: ChecklistItem[];
@@ -225,6 +245,14 @@ export function isIdentitySlot(value: string): value is IdentitySlot {
 
 export function isExchangeStatus(value: string): value is ExchangeStatus {
   return (EXCHANGE_STATUSES as readonly string[]).includes(value);
+}
+
+export function isSquadInviteDirection(value: string): value is SquadInviteDirection {
+  return (SQUAD_INVITE_DIRECTIONS as readonly string[]).includes(value);
+}
+
+export function isSquadInviteStatus(value: string): value is SquadInviteStatus {
+  return (SQUAD_INVITE_STATUSES as readonly string[]).includes(value);
 }
 
 export function parseBotColor(value: string): string | null {
