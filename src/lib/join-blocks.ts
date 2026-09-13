@@ -65,6 +65,15 @@ export function buildZeroFrictionSetupBlock(args: NoCloneJoinBlockArgs): string 
   ].join("\n");
 }
 
+/** One-time command to start loopback join helper on the same Mac as the browser. */
+export function buildSidecarStartBlock(): string {
+  return [
+    "# Run once in Terminal on this Mac (same machine as this browser tab)",
+    "cd ~/Projects/grok-bot-lobby  # adjust if cloned elsewhere",
+    "npm run local-join-bridge",
+  ].join("\n");
+}
+
 export function buildJoinLobbyNpmBlock(args: { code: string; origin: string; name?: string }): string {
   const code = args.code.toUpperCase();
   const origin = args.origin.replace(/\/$/, "");

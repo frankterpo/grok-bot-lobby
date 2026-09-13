@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
-import { CopyBlock } from "@/components/lobby/copy-block";
+import { JoinWizard } from "@/components/lobby/join-wizard";
 import { PermissionsWalkthrough } from "@/components/lobby/permissions-walkthrough";
-import { SkillVerifyJoin } from "@/components/lobby/skill-verify-join";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,7 +24,6 @@ import {
 } from "@/lib/domain";
 import { assertNever } from "@/lib/domain";
 import { clientLobbyOrigin } from "@/lib/format";
-import { buildJoinLobbyNpmBlock, buildNoCloneCurlBlock, buildZeroFrictionSetupBlock } from "@/lib/join-blocks";
 
 type JoinPath = "pick" | "returning" | "new-explain" | "new-claim";
 
@@ -39,7 +37,6 @@ export function JoinFlow({ code, publicOrigin }: JoinFlowProps) {
   const [path, setPath] = useState<JoinPath>("pick");
   const origin = publicOrigin ?? clientLobbyOrigin();
   const [name, setName] = useState("");
-  const [task, setTask] = useState("Joining the lobby");
   const [color, setColor] = useState<string>(BOT_COLORS.cyan);
   const [shareLevel, setShareLevel] = useState<ShareLevel>("label+status");
   const [error, setError] = useState<string | null>(null);
@@ -48,18 +45,6 @@ export function JoinFlow({ code, publicOrigin }: JoinFlowProps) {
   const [hasGrokBot, setHasGrokBot] = useState(true);
   const [claimName, setClaimName] = useState(name);
   const [claimColor, setClaimColor] = useState(color);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [skillVerified, setSkillVerified] = useState(false);
-
-  const trimmedName = name.trim() || "Guest";
-  const trimmedTask = task.trim() || "Joining the lobby";
-
-  const setupBlock = useMemo(() => {
-    const args = { code, origin, name: trimmedName, task: trimmedTask, color };
-    return skillVerified ? buildNoCloneCurlBlock(args) : buildZeroFrictionSetupBlock(args);
-  }, [code, origin, trimmedName, trimmedTask, color, skillVerified]);
-
-  const npmBlock = buildJoinLobbyNpmBlock({ code, origin, name: trimmedName });
 
   async function claim(args: { name: string; botColor: string; grok: boolean }): Promise<void> {
     setPending(true);
@@ -113,25 +98,14 @@ export function JoinFlow({ code, publicOrigin }: JoinFlowProps) {
           path,
           code,
           origin,
-          name,
-          task,
           color,
           shareLevel,
           pending,
           error,
-          showAdvanced,
-          setupBlock,
-          npmBlock,
-          skillVerified,
           setPath,
-          setName,
-          setTask,
-          setColor,
           setShareLevel,
           setClaimName,
           setClaimColor,
-          setShowAdvanced,
-          setSkillVerified,
           claimName,
           claimColor,
           claim,
@@ -150,103 +124,27 @@ function joinBody(args: {
   path: JoinPath;
   code: string;
   origin: string;
-  name: string;
-  task: string;
   color: string;
   shareLevel: ShareLevel;
   pending: boolean;
   error: string | null;
-  showAdvanced: boolean;
-  setupBlock: string;
-  npmBlock: string;
-  skillVerified: boolean;
   setPath: (path: JoinPath) => void;
-  setName: (name: string) => void;
-  setTask: (task: string) => void;
-  setColor: (color: string) => void;
   setShareLevel: (level: ShareLevel) => void;
   claimName: string;
   claimColor: string;
   setClaimName: (name: string) => void;
   setClaimColor: (color: string) => void;
-  setShowAdvanced: (open: boolean) => void;
-  setSkillVerified: (verified: boolean) => void;
   claim: (input: { name: string; botColor: string; grok: boolean }) => Promise<void>;
 }): ReactNode {
   switch (args.path) {
     case "pick":
       return (
-        <div className="mt-3 space-y-4">
-          <div>
-            <h1 className="text-[17px] font-medium text-white/90">Join lobby</h1>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-white/55">
-              1. Your name & task → 2. Copy block → 3. Paste in Grok Bot{" "}
-              <span className="text-white/75">Agent Computer</span>
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="micro text-white/40">Your name</span>
-              <Input
-                value={args.name}
-                onChange={(event) => args.setName(event.target.value)}
-                placeholder="Alice"
-                className="mt-1 h-9 border-[#262626] bg-[#0d0d0d] text-[13px]"
-              />
-            </label>
-            <label className="block">
-              <span className="micro text-white/40">Task</span>
-              <Input
-                value={args.task}
-                onChange={(event) => args.setTask(event.target.value)}
-                placeholder="What you're working on"
-                className="mt-1 h-9 border-[#262626] bg-[#0d0d0d] text-[13px]"
-              />
-            </label>
-          </div>
-
-          <div className="rounded-md border border-[#333] bg-[#0a0a0a] p-3 space-y-2">
-            <p className="text-[12px] font-medium text-white/80">Paste once in Agent Computer</p>
-            <CopyBlock text={args.setupBlock} multiline />
-          </div>
-
-          <button
-            type="button"
-            className="text-[11px] text-white/35 underline-offset-2 hover:text-white/55 hover:underline"
-            onClick={() => args.setShowAdvanced(!args.showAdvanced)}
-          >
-            {args.showAdvanced ? "Hide other options" : "Other options (bridge, mirror, clone repo)"}
-          </button>
-
-          {args.showAdvanced ? (
-            <div className="space-y-3 border-t border-[#262626] pt-3">
-              <SkillVerifyJoin
-                code={args.code}
-                origin={args.origin}
-                name={args.name}
-                task={args.task}
-                color={args.color}
-                onSkillVerified={args.setSkillVerified}
-              />
-
-              <div className="space-y-1.5">
-                <p className="text-[11px] text-white/40">Clone repo + join-lobby CLI</p>
-                <CopyBlock text={args.npmBlock} multiline />
-              </div>
-
-              <button
-                type="button"
-                className="block text-[11px] text-white/35 underline-offset-2 hover:underline"
-                onClick={() => args.setPath("new-explain")}
-              >
-                Browser mirror only (tab must stay open)
-              </button>
-            </div>
-          ) : null}
-
-          {args.error ? <p className="text-[12px] text-red-400">{args.error}</p> : null}
-        </div>
+        <JoinWizard
+          code={args.code}
+          origin={args.origin}
+          color={args.color}
+          onMirrorFallback={() => args.setPath("new-explain")}
+        />
       );
     case "returning":
       return (

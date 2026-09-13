@@ -56,7 +56,18 @@ function corsOrigin(origin: string | undefined): string | null {
   if (!origin) {
     return null;
   }
-  return ALLOWED_ORIGINS.has(origin) ? origin : null;
+  if (ALLOWED_ORIGINS.has(origin)) {
+    return origin;
+  }
+  try {
+    const url = new URL(origin);
+    if (url.protocol === "http:" && (url.hostname === "127.0.0.1" || url.hostname === "localhost")) {
+      return origin;
+    }
+  } catch {
+    // invalid origin
+  }
+  return null;
 }
 
 function applyCors(req: IncomingMessage, res: ServerResponse): boolean {
