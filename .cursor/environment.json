@@ -1,0 +1,10 @@
+{
+  "name": "grok-bot-lobby",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev"
+    }
+  ]
+}
