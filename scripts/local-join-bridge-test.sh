@@ -57,6 +57,17 @@ curl -sS -X OPTIONS "$SIDECAR/join" \
   -D /tmp/sidecar-cors-prod.hdr -o /dev/null
 grep -qi "access-control-allow-origin: https://grok-bot-lobby.teamdeel.workers.dev" /tmp/sidecar-cors-prod.hdr
 
+# Private Network Access preflight (HTTPS prod → localhost sidecar)
+echo "--- PNA preflight (prod origin) ---"
+curl -sS -X OPTIONS "$SIDECAR/join" \
+  -H "Origin: https://grok-bot-lobby.teamdeel.workers.dev" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type" \
+  -H "Access-Control-Request-Private-Network: true" \
+  -D /tmp/sidecar-pna.hdr -o /dev/null
+grep -qi "access-control-allow-private-network: true" /tmp/sidecar-pna.hdr
+echo "PNA header OK"
+
 # Host login + create event
 curl -sS -c /tmp/bridge-host.txt -X POST "$BASE/api/host/login" \
   -H "Content-Type: application/json" \
@@ -89,6 +100,21 @@ if [[ "$PID" != "$PID2" ]]; then
   exit 1
 fi
 echo "Idempotent join OK (same pid=$PID)"
+
+# Invalid event code returns actionable error (not a generic 502)
+echo "--- Invalid code join ---"
+INVALID=$(curl -sS -X POST "$SIDECAR/join" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\":\"ZZZZZZZZ\",\"url\":\"$BASE\",\"name\":\"BadBot\"}")
+echo "INVALID=$INVALID"
+echo "$INVALID" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+assert not d.get('ok'), d
+err = d.get('error', '')
+assert 'live lobby' in err.lower() or 'code' in err.lower(), err
+print('Invalid code error OK:', err)
+"
 
 snap_state() {
   curl -sS "$BASE/api/lobby/snapshot?eventId=$EVENT_ID" \
