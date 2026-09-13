@@ -22,3 +22,4 @@ echo "Verify join wizard at:"
 echo "  https://grok-bot-lobby.teamdeel.workers.dev/join/TEST"
 echo "Expected: 'Join lobby' heading + Mac helper download (NOT 'Three steps')"
 bash scripts/verify-prod-join.sh
+bash scripts/verify-prod-community.sh
