@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Inbox, Plus, Search } from "lucide-react";
+import { ArrowLeft, Inbox, Plus, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { EventCodeChip } from "@/components/lobby/event-code-chip";
 import { GrokBotMark } from "@/components/lobby/grok-bot-mark";
@@ -11,6 +12,7 @@ import {
 } from "@/components/lobby/onboarding-screen";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { writeSlot } from "@/lib/client";
 import type { Actor, Attendee, ChecklistItem, Event } from "@/lib/domain";
 import { formatEventDate } from "@/lib/format";
 import { canCreateEvent, canShareEvent } from "@/lib/policy";
@@ -45,9 +47,16 @@ export function LobbySidebar({
   onCreate,
   onProfileClick,
 }: LobbySidebarProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const remainingTasks = outstandingTasksRemaining(checklistItems);
   const adminAttentionCount = remainingTasks + pendingApprovalCount;
+  const showBackToAdmin = actor.hostAuthenticated === true && actor.slot !== "you";
+
+  function backToAdmin(): void {
+    writeSlot("you");
+    router.push("/");
+  }
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -95,6 +104,18 @@ export function LobbySidebar({
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2">
+        {showBackToAdmin ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="mb-1 h-8 w-full justify-start gap-2 px-2 text-[11px] text-white/55 hover:bg-[var(--grok-sidebar-hover)] hover:text-sidebar-primary"
+            onClick={backToAdmin}
+          >
+            <ArrowLeft className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+            Back to admin
+          </Button>
+        ) : null}
         {filtered.length === 0 ? (
           <p className="px-2 py-3 text-[11px] text-white/35">
             {events.length === 0
