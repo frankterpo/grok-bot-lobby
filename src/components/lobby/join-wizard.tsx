@@ -40,7 +40,7 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
 
   const trimmedName = name.trim();
   const trimmedTask = task.trim() || "Joining the lobby";
-  const canJoin = trimmedName.length > 0 && sidecarOk;
+  const canJoin = trimmedName.length > 0 && sidecarOk && eventLive !== false;
 
   const remoteBlock = useMemo(() => {
     const args = { code, origin, name: trimmedName || "Guest", task: trimmedTask, color };
@@ -205,7 +205,13 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
             className="h-10 w-full bg-primary text-[13px] text-primary-foreground hover:bg-primary/90"
             onClick={() => void joinViaSidecar()}
           >
-            {joinPending ? "Joining…" : trimmedName ? `Join as ${trimmedName}` : "Enter your name to join"}
+            {joinPending
+              ? "Joining…"
+              : eventLive === false
+                ? "Waiting for host to open lobby"
+                : trimmedName
+                  ? `Join as ${trimmedName}`
+                  : "Enter your name to join"}
           </Button>
           {joinError ? <p className="text-[12px] text-red-400">{joinError}</p> : null}
         </div>

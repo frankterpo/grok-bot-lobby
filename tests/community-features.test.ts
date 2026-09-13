@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { Actor, Attendee, PresenceView } from "@/lib/domain";
-import { HOST_USER_ID } from "@/lib/domain";
+import type { Actor, Attendee, PresenceRecord, PresenceView } from "@/lib/domain";
+import { HOST_USER_ID, presenceState, STALE_AFTER_MS } from "@/lib/domain";
 import { filterSoloAttendees, sortSoloAttendees } from "@/lib/grid-sort";
 import { LobbyMemory } from "@/lib/lobby-store";
 import { canKickAttendee, canRespondSquadInvite } from "@/lib/policy";
@@ -64,6 +64,34 @@ describe("parseGrokPrompt", () => {
     assert.equal(parseGrokPrompt("done with credits").status, "done");
     assert.equal(parseGrokPrompt("waiting for venue").status, "waiting");
     assert.equal(parseGrokPrompt("idle").status, "idle");
+  });
+});
+
+describe("presence dot states", () => {
+  const now = Date.parse("2026-09-13T12:00:00.000Z");
+
+  function record(overrides: Partial<PresenceRecord>): PresenceRecord {
+    return {
+      userId: "bot_1",
+      eventId: "e1",
+      lastHeartbeat: new Date(now).toISOString(),
+      claimed: true,
+      ...overrides,
+    };
+  }
+
+  it("maps claimed+recent heartbeat to active (green dot)", () => {
+    assert.equal(presenceState(record({}), now), "active");
+  });
+
+  it("maps unclaimed or missing heartbeat to offline", () => {
+    assert.equal(presenceState(record({ claimed: false }), now), "offline");
+    assert.equal(presenceState(record({ lastHeartbeat: null }), now), "offline");
+  });
+
+  it("maps expired heartbeat to stale", () => {
+    const staleAt = new Date(now - STALE_AFTER_MS - 1).toISOString();
+    assert.equal(presenceState(record({ lastHeartbeat: staleAt }), now), "stale");
   });
 });
 
