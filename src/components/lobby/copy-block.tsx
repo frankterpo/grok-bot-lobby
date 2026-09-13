@@ -33,7 +33,7 @@ export function CopyBlock({
       <code
         className={cn(
           "min-w-0 flex-1 font-mono text-[10px] text-white/55",
-          multiline ? "max-h-64 overflow-auto whitespace-pre-wrap leading-relaxed" : "truncate",
+          multiline ? "max-h-96 overflow-auto whitespace-pre-wrap leading-relaxed" : "truncate",
         )}
       >
         {text}

@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { CopyBlock } from "@/components/lobby/copy-block";
 import { Button } from "@/components/ui/button";
 import {
-  buildJoinBlockFromPayload,
   fsAccessSupported,
   pickSkillFolder,
   probeLocalSkillFolder,
@@ -20,9 +18,17 @@ type SkillVerifyJoinProps = {
   name: string;
   task: string;
   color?: string;
+  onSkillVerified?: (verified: boolean) => void;
 };
 
-export function SkillVerifyJoin({ code, origin, name, task, color = "cyan" }: SkillVerifyJoinProps) {
+export function SkillVerifyJoin({
+  code,
+  origin,
+  name,
+  task,
+  color = "cyan",
+  onSkillVerified,
+}: SkillVerifyJoinProps) {
   const [verification, setVerification] = useState<SkillVerification | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -52,24 +58,6 @@ export function SkillVerifyJoin({ code, origin, name, task, color = "cyan" }: Sk
     };
   }, []);
 
-  const curlBlock = useMemo(() => {
-    if (!verification?.hasGrokbotScript) {
-      return null;
-    }
-    const trimmedName = name.trim();
-    const trimmedTask = task.trim();
-    if (!trimmedName || !trimmedTask) {
-      return null;
-    }
-    return buildJoinBlockFromPayload({
-      code,
-      origin,
-      name: trimmedName,
-      task: trimmedTask,
-      color,
-    });
-  }, [verification, code, origin, name, task, color]);
-
   async function verifySkillFolder(): Promise<void> {
     setPending(true);
     setVerifyError(null);
@@ -78,7 +66,9 @@ export function SkillVerifyJoin({ code, origin, name, task, color = "cyan" }: Sk
       const probe = await probeLocalSkillFolder(handle);
       const next = toSkillVerification(probe);
       setVerification(next);
-      if (!next.hasGrokbotScript) {
+      const ok = next.hasGrokbotScript === true;
+      onSkillVerified?.(ok);
+      if (!ok) {
         setVerifyError(
           probe.readError ??
             "No scripts/grokbot.py found. Pick the root of your adamanz grok-bot skill install.",
@@ -86,6 +76,7 @@ export function SkillVerifyJoin({ code, origin, name, task, color = "cyan" }: Sk
       }
     } catch (error) {
       setVerification(null);
+      onSkillVerified?.(false);
       setVerifyError(error instanceof Error ? error.message : "Could not read folder.");
     } finally {
       setPending(false);
@@ -127,11 +118,10 @@ export function SkillVerifyJoin({ code, origin, name, task, color = "cyan" }: Sk
   return (
     <div className="space-y-3 rounded-md border border-[#262626] bg-[#0d0d0d] p-3">
       <div>
-        <p className="text-[12px] font-medium text-white/85">Verify grok-bot skill</p>
+        <p className="text-[12px] font-medium text-white/85">Verify skill install (optional)</p>
         <p className="mt-1 text-[11px] leading-relaxed text-white/45">
-          Chrome can read a folder you pick to confirm <code className="font-mono">scripts/grokbot.py</code> and
-          generate a join block. This does <span className="text-white/60">not</span> connect to Agent Computer or
-          run grokbot.py — paste the block below when ready.
+          One click to confirm <code className="font-mono">scripts/grokbot.py</code> exists — hides Step A from the
+          setup block above. Does not run commands or connect to Agent Computer.
         </p>
       </div>
 
@@ -143,7 +133,7 @@ export function SkillVerifyJoin({ code, origin, name, task, color = "cyan" }: Sk
         className="h-8 border-[#262626] bg-[#111] text-[11px]"
         onClick={() => void verifySkillFolder()}
       >
-        {fsAccessSupported() ? "Pick grok-bot skill folder…" : "Folder picker unavailable (use Chromium)"}
+        {fsAccessSupported() ? "Reconnect skill folder…" : "Folder picker unavailable (use Chromium)"}
       </Button>
 
       {verifyError ? <p className="text-[11px] text-amber-400/90">{verifyError}</p> : null}
@@ -155,6 +145,7 @@ export function SkillVerifyJoin({ code, origin, name, task, color = "cyan" }: Sk
               <>
                 <span className="text-emerald-400/90">Skill OK</span>
                 {verification.folderName ? ` — ${verification.folderName}` : null}
+                {" — join block above omits install step."}
               </>
             ) : (
               "Folder picked — grok-bot skill not detected."
@@ -170,15 +161,6 @@ export function SkillVerifyJoin({ code, origin, name, task, color = "cyan" }: Sk
             </div>
           ) : null}
         </div>
-      ) : null}
-
-      {curlBlock ? (
-        <div className="space-y-1.5">
-          <p className="micro text-white/40">Join block — paste into Grok Bot Agent Computer</p>
-          <CopyBlock text={curlBlock} multiline />
-        </div>
-      ) : skillOk ? (
-        <p className="text-[11px] text-white/40">Enter your name and task above to generate the join block.</p>
       ) : null}
 
       <div className="border-t border-[#262626] pt-3 space-y-2">

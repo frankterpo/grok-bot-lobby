@@ -1,5 +1,6 @@
 export const REPO_CLONE_URL = "https://github.com/frankterpo/grok-bot-lobby.git";
 export const HEARTBEAT_SECONDS = 60;
+export const GROK_BOT_SKILL_INSTALL = "npx skills add adamanz/grok-bot-skill -g -a cursor";
 
 export type NoCloneJoinBlockArgs = {
   code: string;
@@ -50,6 +51,17 @@ export function buildNoCloneCurlBlock(args: NoCloneJoinBlockArgs): string {
     `    -d '{"eventId":"'"$EVENT_ID"'","botId":"'"$BOT_ID"'"}'`,
     `  sleep ${HEARTBEAT_SECONDS}`,
     `done`,
+  ].join("\n");
+}
+
+/** Combined skill install + join curl — one paste in Grok Bot Agent Computer. */
+export function buildZeroFrictionSetupBlock(args: NoCloneJoinBlockArgs): string {
+  return [
+    "# Step A — install grok-bot skill (skip if already installed)",
+    GROK_BOT_SKILL_INSTALL,
+    "",
+    "# Step B — join lobby (claims slot, syncs task, heartbeats every 60s)",
+    buildNoCloneCurlBlock(args),
   ].join("\n");
 }
 
