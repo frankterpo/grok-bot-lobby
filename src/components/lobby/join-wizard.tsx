@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   buildJoinLobbyNpmBlock,
+  buildSidecarGatekeeperUnblockCommand,
   buildSidecarMacCommandFile,
+  buildSidecarOneLiner,
   buildSidecarStartBlock,
   buildZeroFrictionSetupBlock,
+  SIDECAR_MAC_COMMAND_FILENAME,
 } from "@/lib/join-blocks";
 import { postSidecarJoin, probeSidecar, SIDECAR_BASE, type SidecarHealth } from "@/lib/local-join-bridge";
 
@@ -43,16 +46,20 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
   }, [code, origin, trimmedName, trimmedTask, color]);
 
   const sidecarStartBlock = buildSidecarStartBlock();
+  const sidecarOneLiner = buildSidecarOneLiner();
+  const gatekeeperUnblock = buildSidecarGatekeeperUnblockCommand();
   const npmBlock = buildJoinLobbyNpmBlock({ code, origin, name: trimmedName || "Guest" });
+  const [showDownloadHelp, setShowDownloadHelp] = useState(false);
 
   function downloadMacHelper(): void {
     const blob = new Blob([buildSidecarMacCommandFile()], { type: "application/x-sh" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "start-grok-lobby-helper.command";
+    anchor.download = SIDECAR_MAC_COMMAND_FILENAME;
     anchor.click();
     URL.revokeObjectURL(url);
+    setShowDownloadHelp(true);
   }
 
   useEffect(() => {
@@ -174,18 +181,46 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
         <div className="space-y-2 rounded-md border border-[#333] bg-[#0a0a0a] p-3">
           <p className="text-[12px] font-medium text-white/80">Step 1 — start helper on this Mac</p>
           <p className="text-[11px] leading-relaxed text-white/45">
-            Double-click the download (Mac) or paste in Terminal. Clones repo if needed — page auto-detects helper.
+            Paste in Terminal (recommended — avoids macOS Gatekeeper). Clones repo if needed — page auto-detects
+            helper.
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 w-full border-[#333] bg-[#111] text-[12px] text-white/85"
-            onClick={downloadMacHelper}
-          >
-            Download Mac helper (.command)
-          </Button>
-          <p className="text-[10px] text-white/30">First open: right-click → Open (Gatekeeper). Leave Terminal open.</p>
-          <CopyBlock text={sidecarStartBlock} multiline />
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-medium text-emerald-400/80">Recommended — copy &amp; paste</p>
+            <CopyBlock text={sidecarOneLiner} />
+            <details className="text-[10px] text-white/35">
+              <summary className="cursor-pointer text-white/45 hover:text-white/60">Show multiline version</summary>
+              <div className="mt-1.5">
+                <CopyBlock text={sidecarStartBlock} multiline />
+              </div>
+            </details>
+          </div>
+          <div className="space-y-1.5 border-t border-[#262626] pt-2">
+            <p className="text-[10px] text-white/35">Optional — download .command (macOS may block unsigned files)</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 w-full border-[#333] bg-[#111] text-[12px] text-white/85"
+              onClick={downloadMacHelper}
+            >
+              Download Mac helper (.command)
+            </Button>
+            {showDownloadHelp ? (
+              <div className="space-y-1.5 rounded border border-amber-900/30 bg-amber-950/20 p-2">
+                <p className="text-[10px] leading-relaxed text-amber-400/90">
+                  If macOS says it cannot verify the file, paste the recommended command above instead — or run this
+                  in Terminal after download:
+                </p>
+                <CopyBlock text={gatekeeperUnblock} />
+                <p className="text-[10px] text-white/30">
+                  Alternative: Finder → right-click the file → Open → Open (bypasses double-click block once).
+                </p>
+              </div>
+            ) : (
+              <p className="text-[10px] text-white/30">
+                Downloaded files are quarantined by Gatekeeper. Paste above is faster.
+              </p>
+            )}
+          </div>
           <SidecarWaitStatus checked={sidecarChecked} probe={sidecarProbe} />
         </div>
       )}

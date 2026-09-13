@@ -75,7 +75,9 @@ export function buildSidecarStartBlock(): string {
   ].join("\n");
 }
 
-/** Mac double-clickable .command file — no copy-paste, Terminal opens and starts helper. */
+export const SIDECAR_MAC_COMMAND_FILENAME = "start-grok-lobby-helper.command";
+
+/** Mac double-clickable .command file — may hit Gatekeeper; prefer buildSidecarStartBlock paste. */
 export function buildSidecarMacCommandFile(): string {
   return [
     "#!/bin/bash",
@@ -84,6 +86,22 @@ export function buildSidecarMacCommandFile(): string {
     `if [ ! -d "$HELPER_DIR/.git" ]; then git clone ${REPO_CLONE_URL} "$HELPER_DIR"; fi`,
     'cd "$HELPER_DIR" && npm install && npm run local-join-bridge',
   ].join("\n");
+}
+
+/** One line — paste in Terminal.app (no Gatekeeper quarantine). */
+export function buildSidecarOneLiner(): string {
+  return [
+    'HELPER_DIR="$HOME/.cache/grok-bot-lobby"',
+    `if [ ! -d "$HELPER_DIR/.git" ]; then git clone ${REPO_CLONE_URL} "$HELPER_DIR"; fi`,
+    'cd "$HELPER_DIR" && npm install && npm run local-join-bridge',
+  ].join("; ");
+}
+
+/** After downloading .command from browser — clears macOS quarantine so Open works. */
+export function buildSidecarGatekeeperUnblockCommand(
+  filename: string = SIDECAR_MAC_COMMAND_FILENAME,
+): string {
+  return `xattr -d com.apple.quarantine ~/Downloads/${filename} 2>/dev/null; chmod +x ~/Downloads/${filename}; open ~/Downloads/${filename}`;
 }
 
 export function buildJoinLobbyNpmBlock(args: { code: string; origin: string; name?: string }): string {
