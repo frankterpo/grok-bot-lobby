@@ -138,6 +138,7 @@ export type SessionView = {
   userId: string | null;
   role: SessionRole;
   slot: IdentitySlot;
+  hostAuthenticated: boolean;
   claimed: boolean;
   permissionsAccepted: boolean;
   shareLevel: ShareLevel;

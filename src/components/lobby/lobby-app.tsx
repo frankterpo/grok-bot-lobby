@@ -174,6 +174,7 @@ export function LobbyApp() {
         slot: snapshot.session.slot,
         userId: snapshot.session.userId,
         role: snapshot.session.role,
+        hostAuthenticated: snapshot.session.hostAuthenticated,
       }
     : null;
 
