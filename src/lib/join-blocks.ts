@@ -65,12 +65,13 @@ export function buildZeroFrictionSetupBlock(args: NoCloneJoinBlockArgs): string 
   ].join("\n");
 }
 
-/** One-time command to start loopback join helper on the same Mac as the browser. */
+/** Self-contained block: clone lobby repo if needed, install deps, start loopback helper. */
 export function buildSidecarStartBlock(): string {
   return [
-    "# Run once in Terminal on this Mac (same machine as this browser tab)",
-    "cd ~/Projects/grok-bot-lobby  # adjust if cloned elsewhere",
-    "npm run local-join-bridge",
+    "# Paste once in Terminal on this Mac — clones repo if you don't have it yet",
+    'HELPER_DIR="$HOME/.cache/grok-bot-lobby"',
+    `if [ ! -d "$HELPER_DIR/.git" ]; then git clone ${REPO_CLONE_URL} "$HELPER_DIR"; fi`,
+    'cd "$HELPER_DIR" && npm install && npm run local-join-bridge',
   ].join("\n");
 }
 

@@ -159,9 +159,9 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
         </div>
       ) : (
         <div className="space-y-2 rounded-md border border-[#333] bg-[#0a0a0a] p-3">
-          <p className="text-[12px] font-medium text-white/80">Step 1 — start local helper (once per Mac session)</p>
+          <p className="text-[12px] font-medium text-white/80">Step 1 — paste once in Terminal</p>
           <p className="text-[11px] leading-relaxed text-white/45">
-            Paste in Terminal on this Mac. The page auto-detects when it&apos;s running — no refresh needed.
+            Clones the lobby repo if needed, starts the helper, then this page auto-detects it — no refresh.
           </p>
           <CopyBlock text={sidecarStartBlock} multiline />
           <p className="text-[11px] text-white/35">
