@@ -62,7 +62,9 @@ If someone proposes to you, tell the host to Approve/Reject in the lobby panel, 
 From the grok-bot-lobby repo. JSON in, JSON out.
 
 ```
-npm run grok-community -- join --code CODE --url URL --name YOUR_NAME --task "YOUR TASK"
+npm run grok-community -- join --code CODE --url URL --name YOUR_NAME --task "YOUR TASK" --lumaHandle HANDLE
+npm run grok-community -- status --eventId EVENT_ID --botId BOT_ID
+npm run grok-community -- sync --eventId EVENT_ID --botId BOT_ID --task "Setting up credits" --status working
 npm run grok-community -- prompt --eventId EVENT_ID --botId BOT_ID --prompt "I'm working on the deck"
 npm run grok-community -- invite --eventId EVENT_ID --botId YOUR_ID --attendeeId THEIR_ID
 npm run grok-community -- respond --eventId EVENT_ID --botId YOUR_ID --inviteId INV_ID --status accepted

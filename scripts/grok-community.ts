@@ -93,7 +93,9 @@ function help(): void {
         ok: true,
         usage: "npm run grok-community -- <command> [flags]",
         commands: {
-          join: "--code CODE --name NAME [--task TASK] [--color cyan]",
+          join: "--code CODE --name NAME [--task TASK] [--color cyan] [--lumaHandle HANDLE]",
+          status: "--eventId ID --botId YOU",
+          sync: "--eventId ID --botId YOU --task LABEL [--status working|done|waiting|idle]",
           invite: "--eventId ID --botId YOU --attendeeId THEM [--squadId ID]",
           request: "--eventId ID --botId YOU --squadId ID",
           respond: "--eventId ID --botId YOU --inviteId ID --status accepted|rejected",
@@ -223,6 +225,80 @@ async function prompt(): Promise<void> {
   console.log(JSON.stringify({ ok: true, command: "prompt", intent: json.intent, snapshot: json.snapshot }, null, 2));
 }
 
+async function status(): Promise<void> {
+  const eventId = arg("eventId");
+  const botId = arg("botId");
+  if (!eventId || !botId) {
+    fail("status needs --eventId --botId.");
+  }
+  const params = new URLSearchParams({ eventId });
+  const response = await fetch(`${baseUrl()}/api/lobby/snapshot?${params.toString()}`, {
+    headers: { "x-lobby-as": "attendee", ...botHeaders(botId) },
+  });
+  const json = (await response.json()) as Json;
+  if (!response.ok) {
+    fail(typeof json.error === "string" ? json.error : "status failed");
+  }
+  const tokens = Array.isArray(json.tokens) ? json.tokens : [];
+  const presence = Array.isArray(json.presence) ? json.presence : [];
+  const token = tokens.find((item) => typeof item === "object" && item !== null && (item as Json).botId === botId) as
+    | Json
+    | undefined;
+  const record = presence.find(
+    (item) => typeof item === "object" && item !== null && (item as Json).userId === botId,
+  ) as Json | undefined;
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        command: "status",
+        eventId,
+        botId,
+        token: token
+          ? {
+              taskLabel: token.taskLabel,
+              status: token.status,
+              focus: token.focus,
+              shareLevel: token.shareLevel,
+            }
+          : null,
+        presence: record
+          ? {
+              state: record.state,
+              claimed: record.claimed,
+              lastHeartbeat: record.lastHeartbeat,
+            }
+          : null,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+async function sync(): Promise<void> {
+  const eventId = arg("eventId");
+  const botId = arg("botId");
+  const task = arg("task");
+  const statusValue = arg("status") ?? "working";
+  if (!eventId || !botId || !task) {
+    fail("sync needs --eventId --botId --task. Optional: --status --focus --shareLevel --url");
+  }
+  const { json } = await post(
+    "/api/lobby/sync",
+    {
+      eventId,
+      botId,
+      taskLabel: task,
+      status: statusValue,
+      focus: arg("focus"),
+      shareLevel: arg("shareLevel"),
+    },
+    botHeaders(botId),
+  );
+  console.log(JSON.stringify({ ok: true, command: "sync", snapshot: json }, null, 2));
+}
+
 async function kick(): Promise<void> {
   const eventId = arg("eventId");
   const attendeeId = arg("attendeeId");
@@ -297,6 +373,12 @@ async function main(): Promise<void> {
       return;
     case "prompt":
       await prompt();
+      return;
+    case "status":
+      await status();
+      return;
+    case "sync":
+      await sync();
       return;
     case "kick":
       await kick();

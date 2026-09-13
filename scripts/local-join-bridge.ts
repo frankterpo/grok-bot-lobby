@@ -26,6 +26,8 @@ type SidecarJoinRequest = {
   task?: string;
   color?: string;
   shareLevel?: string;
+  lumaHandle?: string;
+  lumaProfileUrl?: string;
 };
 
 type SidecarJoinResponse = {
@@ -121,6 +123,12 @@ function parseJoinRequest(raw: string): SidecarJoinRequest | null {
     }
     if (typeof record.shareLevel === "string") {
       req.shareLevel = record.shareLevel;
+    }
+    if (typeof record.lumaHandle === "string") {
+      req.lumaHandle = record.lumaHandle;
+    }
+    if (typeof record.lumaProfileUrl === "string") {
+      req.lumaProfileUrl = record.lumaProfileUrl;
     }
     return req;
   } catch {
@@ -220,6 +228,12 @@ function spawnJoinLoop(req: SidecarJoinRequest): Promise<SidecarJoinResponse> {
   }
   if (req.shareLevel) {
     args.push("--shareLevel", req.shareLevel);
+  }
+  if (req.lumaHandle) {
+    args.push("--lumaHandle", req.lumaHandle);
+  }
+  if (req.lumaProfileUrl) {
+    args.push("--lumaProfileUrl", req.lumaProfileUrl);
   }
 
   const child = spawn(process.execPath, args, {

@@ -27,6 +27,7 @@ type JoinWizardProps = {
 export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: JoinWizardProps) {
   const [name, setName] = useState("");
   const [task, setTask] = useState("Joining the lobby");
+  const [lumaHandle, setLumaHandle] = useState("");
   const [sidecarOk, setSidecarOk] = useState(false);
   const [sidecarVersion, setSidecarVersion] = useState<string | undefined>();
   const [sidecarProbe, setSidecarProbe] = useState<Pick<SidecarHealth, "reason" | "detail"> | null>(null);
@@ -40,6 +41,7 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
 
   const trimmedName = name.trim();
   const trimmedTask = task.trim() || "Joining the lobby";
+  const trimmedLumaHandle = lumaHandle.trim().replace(/^@/, "");
   const canJoin = trimmedName.length > 0 && sidecarOk && eventLive !== false;
 
   const remoteBlock = useMemo(() => {
@@ -122,6 +124,7 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
         name: trimmedName,
         task: trimmedTask,
         color,
+        ...(trimmedLumaHandle ? { lumaHandle: trimmedLumaHandle } : {}),
       });
       if (result.ok && result.userId) {
         setJoinedUserId(result.userId);
@@ -192,6 +195,16 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
           />
         </label>
       </div>
+
+      <label className="block">
+        <span className="micro text-white/40">Luma handle (optional)</span>
+        <Input
+          value={lumaHandle}
+          onChange={(event) => setLumaHandle(event.target.value)}
+          placeholder="yourname — enriches profile with past events"
+          className="mt-1 h-9 border-[#262626] bg-[#0d0d0d] text-[13px]"
+        />
+      </label>
 
       {sidecarOk ? (
         <div className="space-y-2 rounded-md border border-emerald-900/40 bg-emerald-950/20 p-3">

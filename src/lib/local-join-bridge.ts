@@ -9,6 +9,8 @@ export type SidecarJoinRequest = {
   task?: string;
   color?: string;
   shareLevel?: string;
+  lumaHandle?: string;
+  lumaProfileUrl?: string;
 };
 
 export type SidecarJoinResponse = {
