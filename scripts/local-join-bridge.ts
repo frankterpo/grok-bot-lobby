@@ -79,6 +79,10 @@ function applyCors(req: IncomingMessage, res: ServerResponse): boolean {
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  // HTTPS prod → localhost requires Private Network Access preflight (Chrome 94+).
+  if (req.headers["access-control-request-private-network"] === "true") {
+    res.setHeader("Access-Control-Allow-Private-Network", "true");
+  }
   return allowed !== null || !origin;
 }
 

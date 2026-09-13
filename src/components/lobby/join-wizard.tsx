@@ -10,7 +10,7 @@ import {
   buildSidecarStartBlock,
   buildZeroFrictionSetupBlock,
 } from "@/lib/join-blocks";
-import { postSidecarJoin, probeSidecar, SIDECAR_BASE } from "@/lib/local-join-bridge";
+import { postSidecarJoin, probeSidecar, SIDECAR_BASE, type SidecarHealth } from "@/lib/local-join-bridge";
 
 type JoinWizardProps = {
   code: string;
@@ -24,6 +24,7 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
   const [task, setTask] = useState("Joining the lobby");
   const [sidecarOk, setSidecarOk] = useState(false);
   const [sidecarVersion, setSidecarVersion] = useState<string | undefined>();
+  const [sidecarProbe, setSidecarProbe] = useState<Pick<SidecarHealth, "reason" | "detail"> | null>(null);
   const [sidecarChecked, setSidecarChecked] = useState(false);
   const [joinPending, setJoinPending] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -53,6 +54,7 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
       }
       setSidecarOk(health.ok);
       setSidecarVersion(health.version);
+      setSidecarProbe({ reason: health.reason, detail: health.detail });
       setSidecarChecked(true);
     }
 
@@ -164,9 +166,7 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
             Clones the lobby repo if needed, starts the helper, then this page auto-detects it — no refresh.
           </p>
           <CopyBlock text={sidecarStartBlock} multiline />
-          <p className="text-[11px] text-white/35">
-            {sidecarChecked ? "Waiting for helper…" : "Checking for helper…"}
-          </p>
+          <SidecarWaitStatus checked={sidecarChecked} probe={sidecarProbe} />
         </div>
       )}
 
@@ -209,6 +209,46 @@ export function JoinWizard({ code, origin, color = "cyan", onMirrorFallback }: J
             Browser mirror only (tab must stay open)
           </button>
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SidecarWaitStatus({
+  checked,
+  probe,
+}: {
+  checked: boolean;
+  probe: Pick<SidecarHealth, "reason" | "detail"> | null;
+}) {
+  if (!checked) {
+    return <p className="text-[11px] text-white/35">Checking for helper at {SIDECAR_BASE}…</p>;
+  }
+
+  const pageOrigin = typeof window !== "undefined" ? window.location.origin : "";
+  const pageIsLocalhost =
+    pageOrigin.startsWith("http://127.0.0.1:") || pageOrigin.startsWith("http://localhost:");
+
+  if (probe?.reason === "blocked" && !pageIsLocalhost) {
+    return (
+      <div className="space-y-1 text-[11px] leading-relaxed text-amber-400/90">
+        <p>
+          Browser blocked localhost from this HTTPS page (Private Network Access). One-click join needs the join
+          page on <code className="font-mono">http://127.0.0.1</code>, or use remote join below.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1 text-[11px] leading-relaxed text-white/40">
+      <p className="text-white/35">Waiting for helper at {SIDECAR_BASE}…</p>
+      <p>
+        Paste the block above in Terminal on the <span className="text-white/60">same machine as this browser tab</span>.
+        Leave that terminal open. If you ran it on a different computer, this page will never detect it.
+      </p>
+      {probe?.reason === "not_running" ? (
+        <p className="text-white/30">Not reachable yet — still starting, or command not run on this machine.</p>
       ) : null}
     </div>
   );

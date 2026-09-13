@@ -22,18 +22,35 @@ export type SidecarJoinResponse = {
 export type SidecarHealth = {
   ok: boolean;
   version?: string;
+  /** Why probe failed — helps UI explain "always waiting". */
+  reason?: "ready" | "not_running" | "blocked" | "error";
+  detail?: string;
 };
 
 export async function probeSidecar(): Promise<SidecarHealth> {
   try {
-    const response = await fetch(`${SIDECAR_BASE}/health`, { method: "GET" });
+    const response = await fetch(`${SIDECAR_BASE}/health`, {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+    });
     if (!response.ok) {
-      return { ok: false };
+      return { ok: false, reason: "error", detail: `HTTP ${response.status}` };
     }
     const json = (await response.json()) as SidecarHealth;
-    return { ok: json.ok === true, version: json.version };
-  } catch {
-    return { ok: false };
+    return { ok: json.ok === true, version: json.version, reason: json.ok ? "ready" : "error" };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "fetch failed";
+    const blocked =
+      message.includes("Failed to fetch") ||
+      message.includes("NetworkError") ||
+      message.includes("CORS") ||
+      message.includes("Load failed");
+    return {
+      ok: false,
+      reason: blocked ? "blocked" : "not_running",
+      detail: message,
+    };
   }
 }
 
